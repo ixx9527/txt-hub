@@ -106,6 +106,22 @@ describe('parseChapters', () => {
     expect(result.chapters).toHaveLength(3);
   });
 
+  it('rejects "7、0、7" — title part is just digits, not real text', () => {
+    const text = `蓝川这样说着，拨通了荔枝房间的号码。
+7、0、7
+在一阵铃声过后，"来了"的声音响起。
+
+第一章 调查开始
+调查的正文`;
+
+    const result = parseChapters(text);
+    expect(result.chapters).toHaveLength(2);
+    expect(result.chapters[0].title).toBe('前言');
+    // The preamble should contain "7、0、7" as body text, not split
+    expect(result.chapters[0].content).toContain('7、0、7');
+    expect(result.chapters[1].title).toBe('第一章 调查开始');
+  });
+
   it('parses Chapter X (English style)', () => {
     const text = `Chapter 1: The Beginning
 Content of chapter 1

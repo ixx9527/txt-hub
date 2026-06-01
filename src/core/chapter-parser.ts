@@ -99,13 +99,23 @@ export function parseChapters(text: string): ParseResult {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    // If this line matches the numeric-dot pattern, check whether
-    // it is actually part of an inline sequential list (e.g. 1. 2. 3. 4. 5.).
-    // If so, skip the entire list block — those are body text, not chapters.
-    if (/^(\d{1,4})\s*[.、．]\s*(.+)$/.test(line)) {
+    // If this line matches the numeric-dot pattern, apply extra validation
+    // before treating it as a heading. Two kinds of false positives to skip:
+    // 1. Sequential lists (1. 2. 3. 4. 5. 紧挨着)
+    // 2. Fake titles like "7、0、7" where the "title" part is just another
+    //    number or digit sequence, not meaningful text.
+    const numericDot = line.match(/^(\d{1,4})\s*[.、．]\s*(.+)$/);
+    if (numericDot) {
+      // Check 1: skip sequential lists
       const [isList, lastIdx] = tryMatchSequentialList(lines, i);
       if (isList) {
-        i = lastIdx; // skip past the whole list
+        i = lastIdx;
+        continue;
+      }
+      // Check 2: the captured "title" must contain at least one character
+      // that is NOT a digit or separator (.、．)
+      const titlePart = numericDot[2];
+      if (!/[^\d.、．\s]/.test(titlePart)) {
         continue;
       }
     }
