@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy": "npm run build && rm -rf /var/www/txthub/* && cp -r dist/* /var/www/txthub/ && nginx -t && nginx -s reload"
   },
   "dependencies": {
     "encoding-japanese": "^2.2.0",
