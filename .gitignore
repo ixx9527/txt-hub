@@ -1,0 +1,55 @@
+# Generated documentation
+docs/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+.playwright-mcp/
+
+# AI / Vibe coding
+.claude/
+CLAUDE.md
+.cursor/
+.windsurf/
+.aider*
+.copilot/
+.bolt/
+.v0/
+*.prompt
+.prompts/
+
+# China AI coding tools
+.trae/
+.tongyi/
+.comate/
+.fitten/
+.marscode/
+.devpilot/
+.codefuse/
+.qoder/
+.qwen/
+QWEN.md
+
+# Logs
+*.log
+logs/
