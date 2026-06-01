@@ -20,6 +20,41 @@ interface RawHeading {
   number: number;
 }
 
+/**
+ * Detect whether a line starting with "N. xxx" is part of a sequential
+ * enumerated list (e.g. 1. 2. 3. 4. 5. 紧挨着) rather than a chapter heading.
+ * Returns [true, endIndex] if it's a list, so the caller can skip past it.
+ */
+function tryMatchSequentialList(
+  lines: string[],
+  idx: number,
+): [boolean, number] {
+  const line = lines[idx].trim();
+  const m = line.match(/^(\d{1,4})\s*[.、．]\s*(.+)$/);
+  if (!m) return [false, idx];
+
+  let num = parseInt(m[1], 10);
+  let end = idx;
+
+  // Scan up to 8 following lines for strict N+1 continuation
+  for (let i = idx + 1; i < Math.min(idx + 9, lines.length); i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed === '') break; // blank line → not a list
+    const next = trimmed.match(/^(\d{1,4})\s*[.、．]\s*(.+)$/);
+    if (next && parseInt(next[1], 10) === num + 1) {
+      num = parseInt(next[1], 10);
+      end = i;
+    } else {
+      break;
+    }
+  }
+
+  // Need at least 3 consecutive items to consider it a list, not chapters
+  const count = end - idx + 1;
+  if (count >= 3) return [true, end];
+  return [false, idx];
+}
+
 function parseNumber(s: string): number {
   if (/^\d+$/.test(s)) return parseInt(s, 10);
   return chineseToNumber(s);
@@ -62,6 +97,19 @@ export function parseChapters(text: string): ParseResult {
   const headings: RawHeading[] = [];
 
   for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // If this line matches the numeric-dot pattern, check whether
+    // it is actually part of an inline sequential list (e.g. 1. 2. 3. 4. 5.).
+    // If so, skip the entire list block — those are body text, not chapters.
+    if (/^(\d{1,4})\s*[.、．]\s*(.+)$/.test(line)) {
+      const [isList, lastIdx] = tryMatchSequentialList(lines, i);
+      if (isList) {
+        i = lastIdx; // skip past the whole list
+        continue;
+      }
+    }
+
     const h = matchHeading(lines[i]);
     if (h) {
       h.lineIndex = i;
