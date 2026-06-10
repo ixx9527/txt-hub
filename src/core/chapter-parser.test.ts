@@ -122,6 +122,26 @@ describe('parseChapters', () => {
     expect(result.chapters[1].title).toBe('第一章 调查开始');
   });
 
+  it('rejects "4.5.不，不对。" — sub-numbered body text like N.N.xxx', () => {
+    const text = `综上所述，荔枝是男人。Q.E.D.
+4.5.不，不对。
+文中不是有数处称呼她为"她"吗。
+
+5.5
+不，不对。
+请看看下面这句话。
+
+第一章 调查开始
+调查的正文`;
+
+    const result = parseChapters(text);
+    expect(result.chapters).toHaveLength(2);
+    expect(result.chapters[0].title).toBe('前言');
+    expect(result.chapters[0].content).toContain('4.5.不，不对。');
+    expect(result.chapters[0].content).toContain('5.5');
+    expect(result.chapters[1].title).toBe('第一章 调查开始');
+  });
+
   it('parses Chapter X (English style)', () => {
     const text = `Chapter 1: The Beginning
 Content of chapter 1

@@ -118,6 +118,12 @@ export function parseChapters(text: string): ParseResult {
       if (!/[^\d.、．\s]/.test(titlePart)) {
         continue;
       }
+      // Check 3: skip sub-numbered lines like "4.5.不，不对。" or "5.5"
+      // where the "title" part itself starts with N. or N、 — these are
+      // body-text sub-points, not chapter headings.
+      if (/^\d{1,4}\s*[.、．]/.test(titlePart)) {
+        continue;
+      }
     }
 
     const h = matchHeading(lines[i]);
