@@ -43,6 +43,14 @@ export default function App() {
       : parseResult.chapters.length
     : 0;
 
+  const handleClear = useCallback(() => {
+    setEncoding(null);
+    setParseResult(null);
+    setSelectedChapter(null);
+    setMeta({ title: '', author: '佚名', language: 'zh-CN' });
+    setCoverBlob(null);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
@@ -58,7 +66,7 @@ export default function App() {
         {/* 左栏 */}
         <aside className="w-80 border-r border-gray-200 bg-white flex flex-col overflow-y-auto">
           <div className="p-4 space-y-5">
-            <FileUpload onFileLoaded={handleFileLoaded} />
+            <FileUpload onFileLoaded={handleFileLoaded} onClear={handleClear} />
 
             {parseResult && (
               <>

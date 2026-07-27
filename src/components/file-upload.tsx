@@ -2,9 +2,10 @@ import { useCallback, useRef, useState } from 'react';
 
 interface Props {
   onFileLoaded: (buffer: ArrayBuffer, fileName: string) => void;
+  onClear?: () => void;
 }
 
-export function FileUpload({ onFileLoaded }: Props) {
+export function FileUpload({ onFileLoaded, onClear }: Props) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +43,16 @@ export function FileUpload({ onFileLoaded }: Props) {
     [handleFile],
   );
 
+  const handleClear = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setFileName(null);
+      if (inputRef.current) inputRef.current.value = '';
+      onClear?.();
+    },
+    [onClear],
+  );
+
   return (
     <div
       className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
@@ -60,9 +71,20 @@ export function FileUpload({ onFileLoaded }: Props) {
         onChange={onChange}
       />
       {fileName ? (
-        <div>
-          <p className="text-sm text-gray-500">已选择文件</p>
-          <p className="mt-1 font-medium text-gray-800">{fileName}</p>
+        <div className="flex items-center justify-center gap-2">
+          <div>
+            <p className="text-sm text-gray-500">已选择文件</p>
+            <p className="mt-1 font-medium text-gray-800">{fileName}</p>
+          </div>
+          <button
+            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            onClick={handleClear}
+            title="清除已选文件"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       ) : (
         <div>

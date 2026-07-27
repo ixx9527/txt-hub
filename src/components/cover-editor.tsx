@@ -3,6 +3,8 @@ import { generateCover, THEMES, CoverTheme } from '../core/cover-generator';
 
 type Mode = 'auto' | 'ai' | 'upload';
 
+const PRESET_TAGS = ['水墨风', '赛博朋克', '极简主义', '复古', '科幻', '奇幻', '油画', '扁平插画', '中国风', '日系动漫'];
+
 interface Props {
   title: string;
   author: string;
@@ -16,6 +18,7 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
   const [showThemePicker, setShowThemePicker] = useState(false);
 
   // AI state
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [aiStyle, setAiStyle] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -66,11 +69,14 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
     if (!title || aiLoading) return;
     setAiLoading(true);
     setAiError(null);
+    const parts = [...selectedTags];
+    if (aiStyle.trim()) parts.push(aiStyle.trim());
+    const style = parts.length > 0 ? parts.join('，') : undefined;
     try {
       const resp = await fetch('/api/generate-cover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, author: author || '佚名', style: aiStyle || undefined }),
+        body: JSON.stringify({ title, author: author || '佚名', style }),
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -91,7 +97,7 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
     } finally {
       setAiLoading(false);
     }
-  }, [title, author, aiStyle, aiLoading, onCoverChange]);
+  }, [title, author, selectedTags, aiStyle, aiLoading, onCoverChange]);
 
   const switchMode = useCallback((m: Mode) => {
     setMode(m);
@@ -176,13 +182,40 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
         </div>
       </div>
 
-      {/* AI style input — only in AI mode */}
+      {/* AI style tags — only in AI mode */}
       {mode === 'ai' && (
         <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {PRESET_TAGS.map((tag) => {
+              const selected = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                    selected
+                      ? 'bg-slate-600 text-white border-slate-600'
+                      : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
+                  }`}
+                  onClick={() => {
+                    setSelectedTags((prev) =>
+                      selected ? prev.filter((t) => t !== tag) : [...prev, tag],
+                    );
+                  }}
+                >
+                  {tag}
+                  {selected && (
+                    <svg className="inline-block w-3 h-3 ml-0.5 -mt-px" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
           <input
             type="text"
-            placeholder="风格描述（可选，如：水墨风、赛博朋克、极简主义）"
-            className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+            placeholder="自定义风格描述（可选）"
+            className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-slate-400"
             value={aiStyle}
             onChange={(e) => setAiStyle(e.target.value)}
             maxLength={500}
