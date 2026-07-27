@@ -36,7 +36,7 @@ export function ExportButton({ meta, result, coverBlob }: Props) {
       className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
         disabled
           ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+          : 'bg-slate-600 text-white hover:bg-slate-700 active:bg-slate-800'
       }`}
       disabled={disabled || exporting}
       onClick={handleExport}

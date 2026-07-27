@@ -102,11 +102,63 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">封面</h3>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <button
+              className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${mode === 'auto' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => {
+                if (mode === 'auto') {
+                  setShowThemePicker((v) => !v);
+                } else {
+                  switchMode('auto');
+                }
+              }}
+            >
+              <span>自动生成{mode === 'auto' ? ` · ${currentThemeName}` : ''}</span>
+              {mode === 'auto' && (
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+
+            {mode === 'auto' && showThemePicker && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowThemePicker(false)} />
+                <div className="absolute z-20 top-full right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[160px] max-h-64 overflow-y-auto">
+                  <button
+                    className="w-full text-left text-sm px-3 py-1.5 rounded hover:bg-gray-100 text-gray-700 flex items-center gap-2"
+                    onClick={() => handleThemeSelect(null)}
+                  >
+                    <svg className="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+                    </svg>
+                    随机
+                  </button>
+                  <div className="my-1 border-t border-gray-100" />
+                  {THEMES.map((theme) => (
+                    <button
+                      key={theme.id}
+                      className="w-full text-left text-sm px-3 py-1.5 rounded hover:bg-gray-100 flex items-center gap-2"
+                      onClick={() => handleThemeSelect(theme)}
+                    >
+                      <span
+                        className="inline-block w-4 h-4 rounded-sm border border-gray-300 shrink-0"
+                        style={{
+                          background: `linear-gradient(135deg, ${theme.stops[0][1]}, ${theme.stops[theme.stops.length - 1][1]})`,
+                        }}
+                      />
+                      {theme.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           {([
-            ['auto', '自动生成'],
             ['ai', 'AI 生成'],
             ['upload', '上传图片'],
           ] as const).map(([m, label]) => (
@@ -124,51 +176,6 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
         </div>
       </div>
 
-      {/* Theme picker — only in auto mode */}
-      {mode === 'auto' && (
-        <div className="relative">
-          <button
-            className="text-xs px-2 py-1 rounded border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 flex items-center gap-1"
-            onClick={() => setShowThemePicker((v) => !v)}
-          >
-            <span>主题: {currentThemeName}</span>
-            <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-              <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-
-          {showThemePicker && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowThemePicker(false)} />
-              <div className="absolute z-20 top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[160px] max-h-64 overflow-y-auto">
-                <button
-                  className="w-full text-left text-sm px-3 py-1.5 rounded hover:bg-gray-100 text-gray-700"
-                  onClick={() => handleThemeSelect(null)}
-                >
-                  🎲 随机
-                </button>
-                <div className="my-1 border-t border-gray-100" />
-                {THEMES.map((theme) => (
-                  <button
-                    key={theme.id}
-                    className="w-full text-left text-sm px-3 py-1.5 rounded hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => handleThemeSelect(theme)}
-                  >
-                    <span
-                      className="inline-block w-4 h-4 rounded-sm border border-gray-300 shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, ${theme.stops[0][1]}, ${theme.stops[theme.stops.length - 1][1]})`,
-                      }}
-                    />
-                    {theme.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {/* AI style input — only in AI mode */}
       {mode === 'ai' && (
         <div className="space-y-2">
@@ -181,7 +188,7 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
             maxLength={500}
           />
           <button
-            className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            className="w-full text-sm px-4 py-2 rounded-lg font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
             onClick={handleAiGenerate}
             disabled={aiLoading || !title}
           >
@@ -194,7 +201,12 @@ export function CoverEditor({ title, author, onCoverChange }: Props) {
                 <span>生成中…</span>
               </>
             ) : (
-              '✨ 生成封面'
+              <>
+                <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.937 15.5A2 2 0 008.5 14.063l-6.135-1.582a.5.5 0 010-.962L8.5 9.936A2 2 0 009.937 8.5l1.582-6.135a.5.5 0 01.963 0L14.063 8.5A2 2 0 0015.5 9.937l6.135 1.582a.5.5 0 010 .962L15.5 14.063a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0z" />
+                </svg>
+                <span>生成封面</span>
+              </>
             )}
           </button>
           {aiError && (
