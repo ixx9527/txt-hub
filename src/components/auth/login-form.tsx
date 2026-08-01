@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Card, Title, Input, Button } from 'animal-island-ui';
 import { useAuth } from '../../hooks/use-auth';
 
 export function LoginForm() {
@@ -25,35 +26,19 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
-      <h2 className="text-xl font-bold text-center">登录</h2>
-      {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded">{error}</div>}
-      <input
-        type="text"
-        placeholder="用户名或邮箱"
-        value={login}
-        onChange={(e) => setLogin(e.target.value)}
-        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-        required
-      />
-      <input
-        type="password"
-        placeholder="密码"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-        required
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white rounded py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? '登录中...' : '登录'}
-      </button>
-      <p className="text-center text-sm text-gray-500">
-        没有账号？<Link to="/register" className="text-blue-600 hover:underline">注册</Link>
-      </p>
-    </form>
+    <div style={{ maxWidth: 400, margin: '60px auto', padding: '0 16px' }}>
+      <Title size="large" color="app-blue">登录</Title>
+      <Card style={{ marginTop: 24 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {error && <div style={{ background: '#fff0f0', color: '#d32f2f', padding: '10px 14px', borderRadius: 12, fontSize: 13 }}>{error}</div>}
+          <Input placeholder="用户名或邮箱" value={login} onChange={(e) => setLogin(e.target.value)} required />
+          <Input placeholder="密码" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Button type="primary" block htmlType="submit" loading={loading}>{loading ? '登录中...' : '登录'}</Button>
+          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--animal-text-secondary)' }}>
+            没有账号？<Link to="/register" style={{ color: 'var(--animal-primary-color)' }}>注册</Link>
+          </p>
+        </form>
+      </Card>
+    </div>
   );
 }

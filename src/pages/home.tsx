@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Card, Title, Input, Select, Button, Tag } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
-import { BookCard } from '../components/book-card';
 import { CategoryTree } from '../components/category-tree';
 
 interface Book {
@@ -10,8 +11,6 @@ interface Book {
   description: string | null;
   cover_path: string | null;
   file_format: string;
-  file_size: number;
-  language: string;
   created_at: string;
   categories: string[];
   tags: string[];
@@ -28,20 +27,12 @@ export function HomePage() {
 
   useEffect(() => {
     setLoading(true);
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: '20',
-      sort,
-      order: 'desc',
-    });
+    const params = new URLSearchParams({ page: String(page), limit: '20', sort, order: 'desc' });
     if (search) params.set('q', search);
     if (selectedCategory) params.set('category', String(selectedCategory));
 
     api<{ books: Book[]; total: number }>(`/books?${params}`)
-      .then((data) => {
-        setBooks(data.books);
-        setTotal(data.total);
-      })
+      .then((data) => { setBooks(data.books); setTotal(data.total); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [page, sort, search, selectedCategory]);
@@ -49,81 +40,71 @@ export function HomePage() {
   const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="flex max-w-7xl mx-auto">
-      {/* Category Sidebar */}
-      <aside className="w-48 shrink-0 border-r border-gray-200 bg-white p-4 overflow-y-auto hidden md:block">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">分类</h3>
-        <CategoryTree selectedId={selectedCategory} onSelect={(id) => { setSelectedCategory(id); setPage(1); }} />
+    <div style={{ display: 'flex', maxWidth: 1200, margin: '0 auto', padding: '24px 16px', gap: 24 }}>
+      <aside style={{ width: 180, flexShrink: 0 }} className="category-sidebar">
+        <Title size="small" color="app-teal">分类</Title>
+        <div style={{ marginTop: 12 }}>
+          <CategoryTree selectedId={selectedCategory} onSelect={(id) => { setSelectedCategory(id); setPage(1); }} />
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 px-6 py-6">
-        {/* Search & Sort */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="搜索书名或作者..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 text-sm"
-            />
-            <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <Input placeholder="搜索书名或作者..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} allowClear size="large" />
           </div>
-          <select
-            value={sort}
-            onChange={(e) => { setSort(e.target.value); setPage(1); }}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="created_at">最新上传</option>
-            <option value="title">按书名</option>
-            <option value="author">按作者</option>
-          </select>
+          <Select value={sort} onChange={(v) => { setSort(v); setPage(1); }} options={[
+            { label: '最新上传', key: 'created_at' },
+            { label: '按书名', key: 'title' },
+            { label: '按作者', key: 'author' },
+          ]} />
         </div>
 
-        {/* Book Grid */}
         {loading ? (
-          <div className="text-center text-gray-400 py-20">加载中...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--animal-text-secondary)' }}>加载中...</div>
         ) : books.length === 0 ? (
-          <div className="text-center text-gray-400 py-20">
-            <p>暂无书籍</p>
-            <p className="text-sm mt-2">上传第一本 EPUB 或 TXT 文件开始使用</p>
-          </div>
+          <Card type="dashed" style={{ textAlign: 'center', padding: 60 }}>
+            <p style={{ color: 'var(--animal-text-secondary)', fontSize: 16 }}>暂无书籍</p>
+            <p style={{ color: 'var(--animal-text-secondary)', fontSize: 13, marginTop: 8 }}>上传第一本 EPUB 或 TXT 文件开始使用</p>
+          </Card>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
               {books.map((book) => (
-                <BookCard key={book.id} {...book} />
+                <Link key={book.id} to={`/book/${book.id}`} style={{ textDecoration: 'none' }}>
+                  <Card hoverable style={{ height: '100%' }}>
+                    <div style={{ aspectRatio: '3/4', background: 'var(--animal-bg-color)', borderRadius: 12, overflow: 'hidden', marginBottom: 12, position: 'relative' }}>
+                      {book.cover_path ? (
+                        <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
+                      )}
+                      <Tag size="small" color="app-blue" style={{ position: 'absolute', top: 8, right: 8 }}>{book.file_format.toUpperCase()}</Tag>
+                    </div>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--animal-text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{book.title}</h3>
+                    <p style={{ fontSize: 12, color: 'var(--animal-text-secondary)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{book.author}</p>
+                    {book.tags?.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
+                        {book.tags.slice(0, 2).map((tag) => <Tag key={tag} size="small" variant="outlined">{tag}</Tag>)}
+                      </div>
+                    )}
+                  </Card>
+                </Link>
               ))}
             </div>
 
             {totalPages > 1 && (
-              <div className="flex justify-center gap-2 mt-8">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-                >
-                  上一页
-                </button>
-                <span className="px-3 py-1 text-sm text-gray-500">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-                >
-                  下一页
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32, alignItems: 'center' }}>
+                <Button disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</Button>
+                <span style={{ fontSize: 13, color: 'var(--animal-text-secondary)' }}>{page} / {totalPages}</span>
+                <Button disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</Button>
               </div>
             )}
           </>
         )}
       </div>
+
+      <style>{`@media (min-width: 768px) { .category-sidebar { display: block !important; } } @media (max-width: 767px) { .category-sidebar { display: none !important; } }`}</style>
     </div>
   );
 }

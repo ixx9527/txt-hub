@@ -1,24 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Card, Title, Button, Tag } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
 
 interface ShelfBook {
-  id: number;
-  title: string;
-  author: string;
-  cover_path: string | null;
-  file_format: string;
-  status: string;
-  progress: number;
-  last_read_at: string | null;
-  added_at: string;
+  id: number; title: string; author: string; cover_path: string | null;
+  file_format: string; status: string; progress: number;
+  last_read_at: string | null; added_at: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  want: '想读',
-  reading: '在读',
-  finished: '读过',
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  want: { label: '想读', color: 'default' },
+  reading: { label: '在读', color: 'app-green' },
+  finished: { label: '读过', color: 'app-blue' },
 };
 
 export function ShelfPage() {
@@ -38,82 +33,51 @@ export function ShelfPage() {
 
   const handleRemove = async (bookId: number) => {
     if (!token || !confirm('确定移出书架？')) return;
-    try {
-      await api(`/shelf/${bookId}`, { method: 'DELETE', token });
-      setBooks((prev) => prev.filter((b) => b.id !== bookId));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : '操作失败');
-    }
+    try { await api(`/shelf/${bookId}`, { method: 'DELETE', token }); setBooks((prev) => prev.filter((b) => b.id !== bookId)); }
+    catch (err) { alert(err instanceof Error ? err.message : '操作失败'); }
   };
 
-  if (loading) return <div className="text-center text-gray-400 py-20">加载中...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 60, color: 'var(--animal-text-secondary)' }}>加载中...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">我的书架</h2>
-        <div className="flex gap-2">
-          {['', 'reading', 'finished', 'want'].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 rounded text-sm ${
-                statusFilter === s ? 'bg-blue-600 text-white' : 'border text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {s ? STATUS_LABELS[s] : '全部'}
-            </button>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <Title size="large" color="app-teal">我的书架</Title>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[{ v: '', l: '全部' }, { v: 'reading', l: '在读' }, { v: 'finished', l: '读过' }, { v: 'want', l: '想读' }].map(({ v, l }) => (
+            <Button key={v} type={statusFilter === v ? 'primary' : 'default'} size="small" onClick={() => setStatusFilter(v)}>{l}</Button>
           ))}
         </div>
       </div>
 
       {books.length === 0 ? (
-        <div className="text-center text-gray-400 py-20">
-          <p>书架是空的</p>
-          <Link to="/" className="text-blue-600 text-sm hover:underline mt-2 inline-block">去浏览书籍</Link>
-        </div>
+        <Card type="dashed" style={{ textAlign: 'center', padding: 48 }}>
+          <p style={{ color: 'var(--animal-text-secondary)' }}>书架是空的</p>
+          <Link to="/" style={{ color: 'var(--animal-primary-color)', fontSize: 13 }}>去浏览书籍</Link>
+        </Card>
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {books.map((book) => (
-            <div key={book.id} className="flex items-center gap-4 border rounded-lg p-3 hover:shadow-sm">
-              <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
-                {book.cover_path ? (
-                  <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-                    </svg>
-                  </div>
-                )}
+            <Card key={book.id} hoverable>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 48, height: 64, background: 'var(--animal-bg-color)', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+                  {book.cover_path ? (
+                    <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📖</div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Link to={`/book/${book.id}`} style={{ fontWeight: 600, fontSize: 14, color: 'var(--animal-text-color)', textDecoration: 'none' }}>{book.title}</Link>
+                  <p style={{ fontSize: 12, color: 'var(--animal-text-secondary)', marginTop: 2 }}>{book.author}</p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <Tag color={(STATUS_MAP[book.status]?.color || 'default') as any}>{STATUS_MAP[book.status]?.label || book.status}</Tag>
+                  {book.progress > 0 && <p style={{ fontSize: 11, color: 'var(--animal-text-secondary)', marginTop: 4 }}>{Math.round(book.progress * 100)}%</p>}
+                </div>
+                <Button type="text" size="small" danger onClick={() => handleRemove(book.id)}>✕</Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <Link to={`/book/${book.id}`} className="font-medium text-sm text-gray-800 hover:text-blue-600 truncate block">
-                  {book.title}
-                </Link>
-                <p className="text-xs text-gray-500">{book.author}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <span className={`text-xs px-2 py-0.5 rounded ${
-                  book.status === 'reading' ? 'bg-green-100 text-green-700' :
-                  book.status === 'finished' ? 'bg-blue-100 text-blue-700' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {STATUS_LABELS[book.status] || book.status}
-                </span>
-                {book.progress > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">{Math.round(book.progress * 100)}%</p>
-                )}
-              </div>
-              <button
-                onClick={() => handleRemove(book.id)}
-                className="text-gray-400 hover:text-red-500 text-sm"
-                title="移出书架"
-              >
-                ✕
-              </button>
-            </div>
+            </Card>
           ))}
         </div>
       )}

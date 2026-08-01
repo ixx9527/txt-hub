@@ -13,6 +13,7 @@
     "deploy": "npm run build && rm -rf /var/www/txthub/* && cp -r dist/* /var/www/txthub/ && nginx -t && nginx -s reload"
   },
   "dependencies": {
+    "animal-island-ui": "^1.4.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "encoding-japanese": "^2.2.0",
