@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Title, Button } from 'animal-island-ui';
 import { useAuth } from '../hooks/use-auth';
 import { apiUpload } from '../hooks/use-api';
+import { UploadIcon } from '../components/icons';
 
 export function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,7 +51,7 @@ export function UploadPage() {
         onDrop={handleDrop}
       >
         <input ref={inputRef} type="file" accept=".epub,.txt" onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }} style={{ display: 'none' }} />
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📤</div>
+        <div style={{ marginBottom: 16, color: 'var(--animal-text-secondary)' }}><UploadIcon size={48} /></div>
         {file ? (
           <>
             <p style={{ fontWeight: 600, color: 'var(--animal-text-color)' }}>{file.name}</p>

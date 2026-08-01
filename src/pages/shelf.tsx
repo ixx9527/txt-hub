@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, Title, Button, Tag } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
+import { BookIcon, CloseIcon } from '../components/icons';
 
 interface ShelfBook {
   id: number; title: string; author: string; cover_path: string | null;
@@ -64,7 +65,7 @@ export function ShelfPage() {
                   {book.cover_path ? (
                     <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📖</div>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--animal-text-secondary)' }}><BookIcon size={24} /></div>
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -75,7 +76,7 @@ export function ShelfPage() {
                   <Tag color={(STATUS_MAP[book.status]?.color || 'default') as any}>{STATUS_MAP[book.status]?.label || book.status}</Tag>
                   {book.progress > 0 && <p style={{ fontSize: 11, color: 'var(--animal-text-secondary)', marginTop: 4 }}>{Math.round(book.progress * 100)}%</p>}
                 </div>
-                <Button type="text" size="small" danger onClick={() => handleRemove(book.id)}>✕</Button>
+                <Button type="text" size="small" danger onClick={() => handleRemove(book.id)}><CloseIcon size={14} /></Button>
               </div>
             </Card>
           ))}

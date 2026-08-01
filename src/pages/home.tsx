@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, Title, Input, Select, Button, Tag } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { CategoryTree } from '../components/category-tree';
+import { BookIcon } from '../components/icons';
 
 interface Book {
   id: number;
@@ -77,7 +78,7 @@ export function HomePage() {
                       {book.cover_path ? (
                         <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--animal-text-secondary)' }}><BookIcon size={40} /></div>
                       )}
                       <Tag size="small" color="app-blue" style={{ position: 'absolute', top: 8, right: 8 }}>{book.file_format.toUpperCase()}</Tag>
                     </div>

@@ -3,6 +3,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Button, Drawer } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
+import { BookmarkIcon } from '../components/icons';
 
 interface Chapter { id: string; title: string; content: string; }
 interface BookInfo { id: number; title: string; author: string; chapters: { id: string; title: string; sort_order: number }[]; }
@@ -138,7 +139,7 @@ export function BookReaderPage() {
         </div>
         <div style={{ fontSize: 13, opacity: 0.6, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chapters[chapterIndex]?.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {user && <Button type="text" size="small" onClick={toggleBookmark} style={{ color: isBookmarked ? '#f7cd67' : undefined, fontSize: 18 }}>{isBookmarked ? '★' : '☆'}</Button>}
+          {user && <Button type="text" size="small" onClick={toggleBookmark} style={{ color: isBookmarked ? '#f7cd67' : undefined }}><BookmarkIcon size={18} filled={isBookmarked} color={isBookmarked ? '#f7cd67' : 'currentColor'} /></Button>}
           <span style={{ fontSize: 12, opacity: 0.5 }}>{chapterIndex + 1}/{chapters.length}</span>
           <Button type="text" size="small" onClick={() => setSettingsOpen(true)}>设置</Button>
         </div>
@@ -217,7 +218,7 @@ export function BookReaderPage() {
       {/* Bookmarks Drawer */}
       <Drawer open={bookmarksOpen} title={`书签 (${bookmarks.length})`} placement="left" width={320} onClose={() => setBookmarksOpen(false)}>
         {bookmarks.length === 0 ? (
-          <p style={{ color: 'var(--animal-text-secondary)', textAlign: 'center', padding: 24 }}>暂无书签，点击 ☆ 添加</p>
+          <p style={{ color: 'var(--animal-text-secondary)', textAlign: 'center', padding: 24 }}>暂无书签，点击书签按钮添加</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {bookmarks.map((bm) => {
@@ -225,7 +226,7 @@ export function BookReaderPage() {
               return (
                 <Button key={bm.id} type="text" block style={{ textAlign: 'left', justifyContent: 'flex-start' }}
                   onClick={() => { if (chIdx >= 0) goToChapter(chIdx); }}>
-                  <span style={{ color: '#f7cd67', marginRight: 6 }}>★</span>
+                  <span style={{ color: '#f7cd67', marginRight: 6 }}><BookmarkIcon size={14} filled color="#f7cd67" /></span>
                   {chapters[chIdx]?.title || '未知章节'}
                 </Button>
               );

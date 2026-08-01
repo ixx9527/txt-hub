@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Input } from 'animal-island-ui';
 import { useAuth } from '../hooks/use-auth';
+import { LogoIcon } from './icons';
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -35,8 +36,8 @@ export function Navbar() {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--animal-text-color)' }}>
-            📚 TXT Hub
+          <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--animal-text-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LogoIcon size={26} /> TXT Hub
           </span>
         </Link>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

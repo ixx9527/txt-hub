@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, Title, Input, Button, Tag, Modal, Divider } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
+import { BookIcon } from '../components/icons';
 
 interface BookDetail {
   id: number; title: string; author: string; publisher: string | null;
@@ -62,7 +63,7 @@ export function BookDetailPage() {
               {book.cover_path ? (
                 <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>📖</div>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--animal-text-secondary)' }}><BookIcon size={64} /></div>
               )}
             </div>
           </Card>
