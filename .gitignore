@@ -53,3 +53,7 @@ QWEN.md
 # Logs
 *.log
 logs/
+
+# Runtime data
+data/
+uploads/

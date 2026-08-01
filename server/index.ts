@@ -1,6 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
+import { getDb } from './db.js';
+import authRoutes from './routes/auth.js';
+import bookRoutes from './routes/books.js';
+import shelfRoutes from './routes/shelf.js';
+import categoryRoutes from './routes/categories.js';
+import tagRoutes from './routes/tags.js';
+import readerRoutes from './routes/reader.js';
 
 const app = express();
 const PORT = 3847;
@@ -8,25 +17,27 @@ const PORT = 3847;
 const AI_SERVICE_TOKEN = process.env.AI_SERVICE_TOKEN;
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
 
-if (!AI_SERVICE_TOKEN || !AI_SERVICE_URL) {
-  console.error('ERROR: AI_SERVICE_TOKEN and AI_SERVICE_URL must be set');
-  process.exit(1);
-}
+// Ensure directories exist
+fs.mkdirSync(path.resolve(process.cwd(), 'uploads'), { recursive: true });
+fs.mkdirSync(path.resolve(process.cwd(), 'data'), { recursive: true });
 
 // --- Middleware ---
 app.use(cors());
-app.use(express.json({ limit: '1kb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// IP rate limiting: 3 req/min, 15 req/hour
-const limiter = rateLimit({
+// Serve uploaded files (covers)
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+
+// Rate limiting for AI endpoints
+const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 3,
   message: { error: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-const hourLimiter = rateLimit({
+const aiHourLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 15,
   message: { error: '小时请求次数已达上限，请稍后再试' },
@@ -34,56 +45,60 @@ const hourLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Global concurrency guard
 let activeRequests = 0;
 const MAX_CONCURRENT = 3;
 
-// --- Routes ---
-app.post(
-  '/api/generate-cover',
-  limiter,
-  hourLimiter,
-  async (req, res) => {
-    if (activeRequests >= MAX_CONCURRENT) {
-      res.status(429).json({ error: '服务器繁忙，请稍后再试' });
-      return;
-    }
+// --- API Routes ---
+app.use('/api/auth', authRoutes);
+app.use('/api/books', bookRoutes);
+app.use('/api/shelf', shelfRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tags', tagRoutes);
+app.use('/api/reader', readerRoutes);
 
-    const { title, author, style } = req.body as {
-      title?: string;
-      author?: string;
-      style?: string;
-    };
+// AI cover generation (existing)
+app.post('/api/generate-cover', aiLimiter, aiHourLimiter, async (req, res) => {
+  if (!AI_SERVICE_TOKEN || !AI_SERVICE_URL) {
+    res.status(503).json({ error: 'AI 服务未配置' });
+    return;
+  }
+  if (activeRequests >= MAX_CONCURRENT) {
+    res.status(429).json({ error: '服务器繁忙，请稍后再试' });
+    return;
+  }
 
-    if (!title || typeof title !== 'string' || title.length > 100) {
-      res.status(400).json({ error: '书名不能为空且不超过100字' });
-      return;
-    }
-    if (author && typeof author === 'string' && author.length > 100) {
-      res.status(400).json({ error: '作者名不超过100字' });
-      return;
-    }
-    if (style && typeof style === 'string' && style.length > 500) {
-      res.status(400).json({ error: '风格描述不超过500字' });
-      return;
-    }
+  const { title, author, style } = req.body as {
+    title?: string; author?: string; style?: string;
+  };
 
-    const prompt = buildPrompt(title, author || '佚名', style);
+  if (!title || typeof title !== 'string' || title.length > 100) {
+    res.status(400).json({ error: '书名不能为空且不超过100字' });
+    return;
+  }
+  if (author && typeof author === 'string' && author.length > 100) {
+    res.status(400).json({ error: '作者名不超过100字' });
+    return;
+  }
+  if (style && typeof style === 'string' && style.length > 500) {
+    res.status(400).json({ error: '风格描述不超过500字' });
+    return;
+  }
 
-    activeRequests++;
-    try {
-      const imageUrl = await callDashScope(prompt);
-      const base64 = await downloadImage(imageUrl);
-      res.json({ image: base64, mimeType: 'image/png' });
-    } catch (err) {
-      console.error('Generate cover error:', err);
-      const message = err instanceof Error ? err.message : '生成失败';
-      res.status(500).json({ error: message });
-    } finally {
-      activeRequests--;
-    }
-  },
-);
+  const prompt = buildPrompt(title, author || '佚名', style);
+
+  activeRequests++;
+  try {
+    const imageUrl = await callDashScope(prompt);
+    const base64 = await downloadImage(imageUrl);
+    res.json({ image: base64, mimeType: 'image/png' });
+  } catch (err) {
+    console.error('Generate cover error:', err);
+    const message = err instanceof Error ? err.message : '生成失败';
+    res.status(500).json({ error: message });
+  } finally {
+    activeRequests--;
+  }
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', active: activeRequests });
@@ -116,7 +131,7 @@ async function callDashScope(prompt: string): Promise<string> {
     },
   };
 
-  const resp = await fetch(AI_SERVICE_URL, {
+  const resp = await fetch(AI_SERVICE_URL!, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -149,6 +164,15 @@ async function downloadImage(url: string): Promise<string> {
 }
 
 // --- Start ---
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`TXT Hub API server running on http://127.0.0.1:${PORT}`);
+async function start() {
+  await getDb();
+  console.log('Database initialized');
+  app.listen(PORT, '127.0.0.1', () => {
+    console.log(`TXT Hub API server running on http://127.0.0.1:${PORT}`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

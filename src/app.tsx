@@ -1,121 +1,62 @@
-import { useState, useCallback } from 'react';
-import { FileUpload } from './components/file-upload';
-import { MetadataForm } from './components/metadata-form';
-import { CoverEditor } from './components/cover-editor';
-import { ChapterTree } from './components/chapter-tree';
-import { ChapterPreview } from './components/chapter-preview';
-import { ExportButton } from './components/export-button';
-import { detectAndDecode } from './core/encoding';
-import { trimText } from './core/trimmer';
-import { parseChapters } from './core/chapter-parser';
-import type { BookMeta, Chapter, ParseResult } from './types';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from './hooks/use-auth';
+import { Navbar } from './components/navbar';
+import { HomePage } from './pages/home';
+import { LoginPage } from './pages/login';
+import { RegisterPage } from './pages/register';
+import { UploadPage } from './pages/upload';
+import { BookDetailPage } from './pages/book-detail';
+import { BookReaderPage } from './pages/book-reader';
+import { ShelfPage } from './pages/shelf';
+import { SearchPage } from './pages/search';
 
-export default function App() {
-  const [encoding, setEncoding] = useState<string | null>(null);
-  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
-  const [meta, setMeta] = useState<BookMeta>({
-    title: '',
-    author: '佚名',
-    language: 'zh-CN',
-  });
-  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+function AppContent() {
+  const { checkAuth, loading } = useAuth();
 
-  const handleFileLoaded = useCallback((buffer: ArrayBuffer, fileName: string) => {
-    const { encoding: enc, text } = detectAndDecode(buffer);
-    setEncoding(enc);
-    const cleaned = trimText(text);
-    const result = parseChapters(cleaned);
-    setParseResult(result);
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-    const baseName = fileName.replace(/\.txt$/i, '');
-    setMeta((prev) => ({ ...prev, title: baseName }));
-
-    const firstChapter = result.hasVolumeStructure
-      ? result.volumes[0]?.chapters[0] || null
-      : result.chapters[0] || null;
-    setSelectedChapter(firstChapter);
-  }, []);
-
-  const chapterCount = parseResult
-    ? parseResult.hasVolumeStructure
-      ? parseResult.volumes.reduce((sum, v) => sum + v.chapters.length, 0)
-      : parseResult.chapters.length
-    : 0;
-
-  const handleClear = useCallback(() => {
-    setEncoding(null);
-    setParseResult(null);
-    setSelectedChapter(null);
-    setMeta({ title: '', author: '佚名', language: 'zh-CN' });
-    setCoverBlob(null);
-  }, []);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        加载中...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">TXT Hub</h1>
-        {encoding && (
-          <span className="text-xs text-gray-400">
-            编码: {encoding} | {chapterCount} 个章节
-          </span>
-        )}
-      </header>
+    <BrowserRouter>
+      <Routes>
+        {/* Reader has its own layout (no navbar) */}
+        <Route path="/book/:id/read" element={<BookReaderPage />} />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* 左栏 */}
-        <aside className="w-80 border-r border-gray-200 bg-white flex flex-col overflow-y-auto">
-          <div className="p-4 space-y-5">
-            <FileUpload onFileLoaded={handleFileLoaded} onClear={handleClear} />
-
-            {parseResult && (
-              <>
-                <MetadataForm meta={meta} onChange={setMeta} />
-                <CoverEditor
-                  title={meta.title}
-                  author={meta.author}
-                  onCoverChange={setCoverBlob}
-                />
-                <ExportButton meta={meta} result={parseResult} coverBlob={coverBlob} />
-              </>
-            )}
-          </div>
-        </aside>
-
-        {/* 右栏 */}
-        <main className="flex-1 flex overflow-hidden">
-          {parseResult ? (
-            <>
-              {/* 章节目录 */}
-              <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto p-3">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  章节目录
-                </h3>
-                <ChapterTree
-                  result={parseResult}
-                  selectedId={selectedChapter?.id || null}
-                  onSelect={setSelectedChapter}
-                />
-              </div>
-              {/* 内容预览 */}
-              <div className="flex-1 overflow-y-auto bg-white">
-                <ChapterPreview chapter={selectedChapter} />
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-                  <path d="M8 7h8M8 11h5" />
-                </svg>
-                <p>上传 TXT 文件开始转换</p>
+        {/* Default layout with navbar */}
+        <Route
+          path="*"
+          element={
+            <div className="min-h-screen flex flex-col bg-gray-50">
+              <Navbar />
+              <div className="flex-1">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/upload" element={<UploadPage />} />
+                  <Route path="/book/:id" element={<BookDetailPage />} />
+                  <Route path="/shelf" element={<ShelfPage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                </Routes>
               </div>
             </div>
-          )}
-        </main>
-      </div>
-    </div>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
+}
+
+export default function App() {
+  return <AppContent />;
 }
