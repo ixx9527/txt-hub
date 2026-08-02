@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Input } from 'animal-island-ui';
 import { useAuth } from '../hooks/use-auth';
 import { LogoIcon } from './icons';
 
@@ -22,60 +21,48 @@ export function Navbar() {
   };
 
   return (
-    <header style={{
-      background: 'var(--animal-card-default-bg)',
-      borderBottom: '2px solid var(--animal-border-color)',
-      padding: '12px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 16,
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--animal-text-color)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <LogoIcon size={26} /> TXT Hub
-          </span>
+    <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-6">
+        <Link to="/" className="flex items-center gap-2 text-lg font-bold text-gray-800 hover:text-blue-600 shrink-0">
+          <LogoIcon size={24} /> TXT Hub
         </Link>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Link to="/"><Button type="text" size="small">书架</Button></Link>
+        <nav className="hidden sm:flex items-center gap-4 text-sm">
+          <Link to="/" className="text-gray-600 hover:text-blue-600">书库</Link>
           {user && (
             <>
-              <Link to="/upload"><Button type="text" size="small">上传</Button></Link>
-              <Link to="/shelf"><Button type="text" size="small">我的书架</Button></Link>
+              <Link to="/upload" className="text-gray-600 hover:text-blue-600">上传</Link>
+              <Link to="/shelf" className="text-gray-600 hover:text-blue-600">我的书架</Link>
             </>
           )}
         </nav>
       </div>
 
-      <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: 380 }}>
-        <Input
-          placeholder="搜索书籍..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          allowClear
-          size="small"
-          prefix={
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--animal-text-secondary)" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-          }
-        />
+      <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:block">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="搜索书籍..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 pl-8 text-sm focus:outline-none focus:border-blue-400"
+          />
+          <svg className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </div>
       </form>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <div className="flex items-center gap-4 text-sm shrink-0">
         {user ? (
           <>
-            <span style={{ fontSize: 13, color: 'var(--animal-text-secondary)' }}>{user.username}</span>
-            <Button type="text" size="small" onClick={handleLogout}>退出</Button>
+            <span className="text-gray-500 hidden sm:inline">{user.username}</span>
+            <button onClick={handleLogout} className="text-gray-600 hover:text-red-600">退出</button>
           </>
         ) : (
           <>
-            <Link to="/login"><Button type="text" size="small">登录</Button></Link>
-            <Link to="/register"><Button type="primary" size="small">注册</Button></Link>
+            <Link to="/login" className="text-gray-600 hover:text-blue-600">登录</Link>
+            <Link to="/register" className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">注册</Link>
           </>
         )}
       </div>

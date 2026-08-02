@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Card, Title, Input, Button, Tag, Modal, Divider } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
 import { BookIcon } from '../components/icons';
+import { useDialog } from '../components/dialog';
 
 interface BookDetail {
-  id: number; title: string; author: string; publisher: string | null;
-  description: string | null; language: string; isbn: string | null;
-  cover_path: string | null; file_format: string; file_size: number;
-  upload_user_id: number | null; created_at: string;
+  id: number;
+  title: string;
+  author: string;
+  publisher: string | null;
+  description: string | null;
+  language: string;
+  isbn: string | null;
+  cover_path: string | null;
+  file_format: string;
+  file_size: number;
+  upload_user_id: number | null;
+  created_at: string;
   categories: { id: number; name: string }[];
   tags: { id: number; name: string }[];
   chapters: { id: string; title: string; sort_order: number }[];
@@ -21,103 +29,164 @@ export function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ title: '', author: '', publisher: '', description: '', language: '', isbn: '' });
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const dialog = useDialog();
 
   useEffect(() => {
-    api<BookDetail>(`/books/${id}`).then(setBook).catch(console.error).finally(() => setLoading(false));
+    api<BookDetail>(`/books/${id}`)
+      .then(setBook)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [id]);
 
   const handleAddShelf = async () => {
     if (!token || !book) return;
-    try { await api('/shelf', { method: 'POST', body: { book_id: book.id }, token }); alert('已加入书架'); }
-    catch (err) { alert(err instanceof Error ? err.message : '操作失败'); }
+    try {
+      await api('/shelf', { method: 'POST', body: { book_id: book.id }, token });
+      await dialog.alert({ message: '已加入书架', type: 'success' });
+    } catch (err) {
+      await dialog.alert({ message: err instanceof Error ? err.message : '操作失败', type: 'error' });
+    }
   };
 
   const handleDelete = async () => {
     if (!token || !book) return;
-    try { await api(`/books/${book.id}`, { method: 'DELETE', token }); navigate('/'); }
-    catch (err) { alert(err instanceof Error ? err.message : '删除失败'); }
-    setDeleteOpen(false);
+    const confirmed = await dialog.confirm({ title: '删除书籍', message: `确定要删除《${book.title}》吗？此操作不可恢复。`, type: 'warning', confirmText: '删除' });
+    if (!confirmed) return;
+    try {
+      await api(`/books/${book.id}`, { method: 'DELETE', token });
+      navigate('/');
+    } catch (err) {
+      await dialog.alert({ message: err instanceof Error ? err.message : '删除失败', type: 'error' });
+    }
   };
 
   const handleSaveEdit = async () => {
     if (!token || !book) return;
-    try { await api(`/books/${book.id}`, { method: 'PUT', body: editData, token }); setBook({ ...book, ...editData }); setEditing(false); }
-    catch (err) { alert(err instanceof Error ? err.message : '保存失败'); }
+    try {
+      await api(`/books/${book.id}`, { method: 'PUT', body: editData, token });
+      setBook({ ...book, ...editData });
+      setEditing(false);
+    } catch (err) {
+      await dialog.alert({ message: err instanceof Error ? err.message : '保存失败', type: 'error' });
+    }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 60, color: 'var(--animal-text-secondary)' }}>加载中...</div>;
-  if (!book) return <div style={{ textAlign: 'center', padding: 60, color: 'var(--animal-text-secondary)' }}>书籍不存在</div>;
+  if (loading) return <div className="text-center text-gray-400 py-20">加载中...</div>;
+  if (!book) return <div className="text-center text-gray-400 py-20">书籍不存在</div>;
 
   const canEdit = user && (user.id === book.upload_user_id || user.role === 'admin');
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
-      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-        {/* Cover */}
-        <div style={{ width: 200, flexShrink: 0 }}>
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ aspectRatio: '3/4', background: 'var(--animal-bg-color)' }}>
-              {book.cover_path ? (
-                <img src={`/uploads/${book.cover_path.split('/').pop()}`} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--animal-text-secondary)' }}><BookIcon size={64} /></div>
-              )}
-            </div>
-          </Card>
+    <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="flex gap-8">
+        <div className="w-48 shrink-0">
+          <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+            {book.cover_path ? (
+              <img
+                src={`/uploads/${book.cover_path.split('uploads/')[1]}`}
+                alt={book.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <BookIcon size={64} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 280 }}>
+        <div className="flex-1">
           {editing ? (
-            <Card>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Input value={editData.title} onChange={(e) => setEditData({ ...editData, title: e.target.value })} placeholder="书名" />
-                <Input value={editData.author} onChange={(e) => setEditData({ ...editData, author: e.target.value })} placeholder="作者" />
-                <Input value={editData.publisher} onChange={(e) => setEditData({ ...editData, publisher: e.target.value })} placeholder="出版社" />
-                <textarea value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} placeholder="简介"
-                  style={{ width: '100%', minHeight: 80, padding: 12, borderRadius: 12, border: '2px solid var(--animal-border-color)', fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Button type="primary" onClick={handleSaveEdit}>保存</Button>
-                  <Button onClick={() => setEditing(false)}>取消</Button>
-                </div>
+            <div className="space-y-3">
+              <input
+                value={editData.title}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                className="w-full border rounded px-3 py-2 text-lg font-bold"
+                placeholder="书名"
+              />
+              <input
+                value={editData.author}
+                onChange={(e) => setEditData({ ...editData, author: e.target.value })}
+                className="w-full border rounded px-3 py-2 text-sm"
+                placeholder="作者"
+              />
+              <input
+                value={editData.publisher}
+                onChange={(e) => setEditData({ ...editData, publisher: e.target.value })}
+                className="w-full border rounded px-3 py-2 text-sm"
+                placeholder="出版社"
+              />
+              <textarea
+                value={editData.description}
+                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                className="w-full border rounded px-3 py-2 text-sm h-24"
+                placeholder="简介"
+              />
+              <div className="flex gap-2">
+                <button onClick={handleSaveEdit} className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm">保存</button>
+                <button onClick={() => setEditing(false)} className="border px-4 py-1.5 rounded text-sm">取消</button>
               </div>
-            </Card>
+            </div>
           ) : (
             <>
-              <Title size="large" color="app-blue">{book.title}</Title>
-              <p style={{ fontSize: 16, color: 'var(--animal-text-color)', marginTop: 12 }}>{book.author}</p>
-              {book.publisher && <p style={{ fontSize: 13, color: 'var(--animal-text-secondary)', marginTop: 4 }}>{book.publisher}</p>}
+              <h1 className="text-2xl font-bold text-gray-800">{book.title}</h1>
+              <p className="text-gray-600 mt-1">{book.author}</p>
+              {book.publisher && <p className="text-sm text-gray-500 mt-1">{book.publisher}</p>}
 
-              <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Link to={`/book/${book.id}/read`}><Button type="primary" size="large">开始阅读</Button></Link>
-                {user && <Button onClick={handleAddShelf}>加入书架</Button>}
-                <a href={`/api/books/${book.id}/download?format=${book.file_format}`} style={{ textDecoration: 'none' }}>
-                  <Button>下载 {book.file_format.toUpperCase()}</Button>
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                <Link
+                  to={`/book/${book.id}/read`}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+                >
+                  开始阅读
+                </Link>
+                {user && (
+                  <button onClick={handleAddShelf} className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                    加入书架
+                  </button>
+                )}
+                <a
+                  href={`/api/books/${book.id}/download?format=${book.file_format}`}
+                  className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  下载 {book.file_format.toUpperCase()}
                 </a>
                 {book.file_format === 'epub' && (
-                  <a href={`/api/books/${book.id}/download?format=txt`} style={{ textDecoration: 'none' }}>
-                    <Button>下载 TXT</Button>
+                  <a
+                    href={`/api/books/${book.id}/download?format=txt`}
+                    className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
+                  >
+                    下载 TXT
                   </a>
                 )}
                 {canEdit && (
                   <>
-                    <Button type="text" onClick={() => { setEditing(true); setEditData({ title: book.title, author: book.author, publisher: book.publisher || '', description: book.description || '', language: book.language, isbn: book.isbn || '' }); }}>编辑</Button>
-                    <Button type="text" danger onClick={() => setDeleteOpen(true)}>删除</Button>
+                    <button onClick={() => { setEditing(true); setEditData({ title: book.title, author: book.author, publisher: book.publisher || '', description: book.description || '', language: book.language, isbn: book.isbn || '' }); }} className="text-sm text-gray-500 hover:text-blue-600">
+                      编辑
+                    </button>
+                    <button onClick={handleDelete} className="text-sm text-red-500 hover:text-red-700">
+                      删除
+                    </button>
                   </>
                 )}
               </div>
 
-              {book.description && <p style={{ fontSize: 14, color: 'var(--animal-text-color)', marginTop: 20, lineHeight: 1.8 }}>{book.description}</p>}
+              {book.description && (
+                <p className="text-sm text-gray-600 mt-4 leading-relaxed">{book.description}</p>
+              )}
 
-              <div style={{ display: 'flex', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
-                {book.categories.map((c) => <Tag key={c.id} color="app-teal">{c.name}</Tag>)}
-                {book.tags.map((t) => <Tag key={t.id} variant="outlined">#{t.name}</Tag>)}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {book.categories.map((c) => (
+                  <span key={c.id} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">{c.name}</span>
+                ))}
+                {book.tags.map((t) => (
+                  <span key={t.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">#{t.name}</span>
+                ))}
               </div>
 
-              <div style={{ fontSize: 12, color: 'var(--animal-text-secondary)', marginTop: 16, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div className="text-xs text-gray-400 mt-4 space-x-4">
                 <span>格式: {book.file_format.toUpperCase()}</span>
                 <span>大小: {(book.file_size / 1024 / 1024).toFixed(2)} MB</span>
                 <span>语言: {book.language}</span>
@@ -129,25 +198,23 @@ export function BookDetailPage() {
       </div>
 
       {book.chapters.length > 0 && (
-        <>
-          <Divider type="wave-yellow" />
-          <Title size="middle" color="app-yellow">目录 ({book.chapters.length} 章)</Title>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 4, marginTop: 16 }}>
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            目录 ({book.chapters.length} 章)
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             {book.chapters.map((ch) => (
-              <Link key={ch.id} to={`/book/${book.id}/read?chapter=${ch.id}`} style={{ textDecoration: 'none' }}>
-                <Card hoverable style={{ padding: '8px 12px' }}>
-                  <span style={{ fontSize: 13, color: 'var(--animal-text-color)' }}>{ch.title}</span>
-                </Card>
+              <Link
+                key={ch.id}
+                to={`/book/${book.id}/read?chapter=${ch.id}`}
+                className="text-sm text-gray-600 hover:text-blue-600 py-1.5 px-2 rounded hover:bg-gray-50 truncate"
+              >
+                {ch.title}
               </Link>
             ))}
           </div>
-        </>
+        </div>
       )}
-
-      <Modal open={deleteOpen} title="确认删除" onClose={() => setDeleteOpen(false)}
-        footer={<><Button onClick={() => setDeleteOpen(false)}>取消</Button><Button type="primary" danger onClick={handleDelete}>删除</Button></>}>
-        确定要删除《{book.title}》吗？此操作不可恢复。
-      </Modal>
     </div>
   );
 }

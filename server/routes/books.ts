@@ -25,11 +25,12 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
     const meta = await parseEpub(req.file.path, format, originalName);
 
     const db = await getDb();
+    
     db.run(
       `INSERT INTO books (title, author, publisher, description, language, isbn, cover_path, file_path, file_format, file_size, upload_user_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        meta.title || path.basename(req.file.originalname, ext),
+        meta.title || originalName,
         meta.author || '佚名',
         meta.publisher || null,
         meta.description || null,
@@ -42,10 +43,10 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
         req.user!.userId,
       ],
     );
-    save();
 
-    const idResult = db.exec('SELECT last_insert_rowid()');
-    const bookId = idResult[0].values[0][0] as number;
+    const idResult = db.exec('SELECT MAX(id) FROM books');
+    const bookId = (idResult[0]?.values[0]?.[0] as number) || 0;
+    save();
 
     // Index chapters for search
     if (meta.chapters && meta.chapters.length > 0) {

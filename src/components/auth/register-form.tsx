@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Card, Title, Input, Button } from 'animal-island-ui';
 import { useAuth } from '../../hooks/use-auth';
 
 export function RegisterForm() {
@@ -27,20 +26,46 @@ export function RegisterForm() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '60px auto', padding: '0 16px' }}>
-      <Title size="large" color="app-green">注册</Title>
-      <Card style={{ marginTop: 24 }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {error && <div style={{ background: '#fff0f0', color: '#d32f2f', padding: '10px 14px', borderRadius: 12, fontSize: 13 }}>{error}</div>}
-          <Input placeholder="用户名 (2-30 字符)" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={2} maxLength={30} />
-          <Input placeholder="邮箱" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Input placeholder="密码 (至少 6 字符)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-          <Button type="primary" block htmlType="submit" loading={loading}>{loading ? '注册中...' : '注册'}</Button>
-          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--animal-text-secondary)' }}>
-            已有账号？<Link to="/login" style={{ color: 'var(--animal-primary-color)' }}>登录</Link>
-          </p>
-        </form>
-      </Card>
-    </div>
+    <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
+      <h2 className="text-xl font-bold text-center">注册</h2>
+      {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded">{error}</div>}
+      <input
+        type="text"
+        placeholder="用户名 (2-30 字符)"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+        required
+        minLength={2}
+        maxLength={30}
+      />
+      <input
+        type="email"
+        placeholder="邮箱"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+        required
+      />
+      <input
+        type="password"
+        placeholder="密码 (至少 6 字符)"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+        required
+        minLength={6}
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-blue-600 text-white rounded py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+      >
+        {loading ? '注册中...' : '注册'}
+      </button>
+      <p className="text-center text-sm text-gray-500">
+        已有账号？<Link to="/login" className="text-blue-600 hover:underline">登录</Link>
+      </p>
+    </form>
   );
 }

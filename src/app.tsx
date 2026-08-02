@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Cursor, Footer } from 'animal-island-ui';
 import { useAuth } from './hooks/use-auth';
+import { DialogProvider } from './components/dialog';
 import { Navbar } from './components/navbar';
 import { HomePage } from './pages/home';
 import { LoginPage } from './pages/login';
@@ -21,23 +21,23 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--animal-bg-color)' }}>
-        <p style={{ color: 'var(--animal-text-color)', fontSize: 18 }}>加载中...</p>
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        加载中...
       </div>
     );
   }
 
   return (
-    <Cursor>
+    <DialogProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/book/:id/read" element={<BookReaderPage />} />
           <Route
             path="*"
             element={
-              <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--animal-bg-color)' }}>
+              <div className="min-h-screen flex flex-col bg-gray-50">
                 <Navbar />
-                <div style={{ flex: 1 }}>
+                <div className="flex-1">
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
@@ -48,13 +48,12 @@ function AppContent() {
                     <Route path="/search" element={<SearchPage />} />
                   </Routes>
                 </div>
-                <Footer type="sea" />
               </div>
             }
           />
         </Routes>
       </BrowserRouter>
-    </Cursor>
+    </DialogProvider>
   );
 }
 

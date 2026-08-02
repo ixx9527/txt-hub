@@ -95,8 +95,9 @@ export async function parseEpub(filePath: string, format: string, originalName?:
     chapters: [],
   };
 
-  // Extract cover image
+  // Extract cover image - handle both attribute orderings
   const coverMatch = opfContent.match(/properties="cover-image"[^>]*href="([^"]+)"/)
+    || opfContent.match(/href="([^"]+)"[^>]*properties="cover-image"/)
     || opfContent.match(/<meta[^>]*name="cover"[^>]*content="([^"]+)"/);
   if (coverMatch) {
     let coverHref = coverMatch[1];
@@ -117,12 +118,16 @@ export async function parseEpub(filePath: string, format: string, originalName?:
     }
   }
 
-  // Parse spine order
+  // Parse spine order (skip non-linear items like cover)
   const spineItems: string[] = [];
-  const spineRegex = /<itemref\s+idref="([^"]+)"/g;
+  const spineRegex = /<itemref\s+([^>]+)>/g;
   let spineMatch;
   while ((spineMatch = spineRegex.exec(opfContent)) !== null) {
-    spineItems.push(spineMatch[1]);
+    const attrs = spineMatch[1];
+    // Skip items with linear="no" (e.g., cover pages)
+    if (attrs.includes('linear="no"')) continue;
+    const idrefMatch = attrs.match(/idref="([^"]+)"/);
+    if (idrefMatch) spineItems.push(idrefMatch[1]);
   }
 
   // Build manifest map

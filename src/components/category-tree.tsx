@@ -1,32 +1,57 @@
 import { useState, useEffect } from 'react';
-import { Button } from 'animal-island-ui';
 import { api } from '../hooks/use-api';
 
-interface Category { id: number; name: string; parent_id: number | null; children: Category[]; }
+interface Category {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  children: Category[];
+}
 
-interface CategoryTreeProps { selectedId: number | null; onSelect: (id: number | null) => void; }
+interface CategoryTreeProps {
+  selectedId: number | null;
+  onSelect: (id: number | null) => void;
+}
 
 export function CategoryTree({ selectedId, onSelect }: CategoryTreeProps) {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    api<{ categories: Category[] }>('/categories').then((data) => setCategories(data.categories)).catch(console.error);
+    api<{ categories: Category[] }>('/categories')
+      .then((data) => setCategories(data.categories))
+      .catch(console.error);
   }, []);
 
   const renderNode = (cat: Category, depth: number = 0) => (
     <div key={cat.id}>
-      <Button type={selectedId === cat.id ? 'primary' : 'text'} size="small" block
-        style={{ textAlign: 'left', paddingLeft: depth * 12 + 8, justifyContent: 'flex-start', fontWeight: selectedId === cat.id ? 600 : 400 }}
-        onClick={() => onSelect(selectedId === cat.id ? null : cat.id)}>
+      <button
+        onClick={() => onSelect(selectedId === cat.id ? null : cat.id)}
+        className={`block w-full text-left text-sm py-1 px-2 rounded truncate ${
+          selectedId === cat.id
+            ? 'bg-blue-100 text-blue-700 font-medium'
+            : 'hover:bg-gray-100 text-gray-600'
+        }`}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+      >
+        {cat.children.length > 0 && (
+          <span className="inline-block w-4 text-xs opacity-50">▸</span>
+        )}
         {cat.name}
-      </Button>
+      </button>
       {cat.children.map((child) => renderNode(child, depth + 1))}
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Button type={selectedId === null ? 'primary' : 'text'} size="small" block onClick={() => onSelect(null)} style={{ textAlign: 'left', justifyContent: 'flex-start' }}>全部分类</Button>
+    <div>
+      <button
+        onClick={() => onSelect(null)}
+        className={`block w-full text-left text-sm py-1 px-2 rounded mb-1 ${
+          selectedId === null ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-gray-100 text-gray-600'
+        }`}
+      >
+        全部分类
+      </button>
       {categories.map((cat) => renderNode(cat))}
     </div>
   );
