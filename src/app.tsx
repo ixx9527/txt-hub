@@ -11,6 +11,7 @@ import { BookDetailPage } from './pages/book-detail';
 import { BookReaderPage } from './pages/book-reader';
 import { ShelfPage } from './pages/shelf';
 import { SearchPage } from './pages/search';
+import { TxtToEpubPage } from './pages/txt-to-epub';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ function AppContent() {
       <BrowserRouter>
         <Routes>
           <Route path="/book/:id/read" element={<RequireAuth><BookReaderPage /></RequireAuth>} />
+          <Route path="/txt-to-epub" element={<RequireAuth><TxtToEpubPage /></RequireAuth>} />
           <Route
             path="*"
             element={
