@@ -20,7 +20,7 @@ interface BookDetail {
   created_at: string;
   categories: { id: number; name: string }[];
   tags: { id: number; name: string }[];
-  chapters: { id: string; title: string; sort_order: number }[];
+  chapters: { id: string; title: string; sort_order: number; level: number }[];
 }
 
 export function BookDetailPage() {
@@ -202,12 +202,16 @@ export function BookDetailPage() {
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
             目录 ({book.chapters.length} 章)
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4">
             {book.chapters.map((ch) => (
               <Link
                 key={ch.id}
                 to={`/book/${book.id}/read?chapter=${ch.id}`}
-                className="text-sm text-gray-600 hover:text-blue-600 py-1.5 px-2 rounded hover:bg-gray-50 truncate"
+                className={`text-sm py-1.5 px-2 rounded hover:bg-gray-50 truncate block ${
+                  ch.level === 1 ? 'font-semibold text-gray-800 sm:col-span-2' :
+                  ch.level === 2 ? 'text-gray-600 pl-6' :
+                  'text-gray-500 pl-6'
+                } hover:text-blue-600`}
               >
                 {ch.title}
               </Link>

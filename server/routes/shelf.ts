@@ -97,10 +97,11 @@ router.put('/:bookId/progress', (req: Request, res: Response) => {
     const db = getDbSync();
     const bookId = parseInt(req.params.bookId);
     const userId = req.user!.userId;
-    const { progress, current_cfi, status } = req.body as {
+    const { progress, current_cfi, status, last_chapter_id } = req.body as {
       progress?: number;
       current_cfi?: string;
       status?: string;
+      last_chapter_id?: string;
     };
 
     db.run(
@@ -108,9 +109,10 @@ router.put('/:bookId/progress', (req: Request, res: Response) => {
          progress = COALESCE(?, progress),
          current_cfi = COALESCE(?, current_cfi),
          status = COALESCE(?, status),
+         last_chapter_id = COALESCE(?, last_chapter_id),
          last_read_at = datetime('now')
        WHERE user_id = ? AND book_id = ?`,
-      [progress ?? null, current_cfi ?? null, status ?? null, userId, bookId],
+      [progress ?? null, current_cfi ?? null, status ?? null, last_chapter_id ?? null, userId, bookId],
     );
     save();
 

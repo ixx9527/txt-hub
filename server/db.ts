@@ -2,6 +2,13 @@ import initSqlJs, { Database } from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 
+export function detectChapterLevel(title: string): number {
+  if (/第\s*[一二三四五六七八九十百千\d]+\s*卷/.test(title)) return 1;
+  if (/第\s*[一二三四五六七八九十百千\d]+\s*章/.test(title)) return 2;
+  if (/^\s*[第]?[一二三四五六七八九十\d]+\s*[节话回集篇部]/.test(title)) return 2;
+  return 0;
+}
+
 const DB_PATH = path.resolve(process.cwd(), 'data/txthub.db');
 
 let db: Database;
@@ -154,6 +161,37 @@ function initTables(db: Database): void {
       sort_order INTEGER NOT NULL DEFAULT 0
     )
   `);
+
+  // Migration: add last_chapter_id to user_books if missing
+  try {
+    db.run(`ALTER TABLE user_books ADD COLUMN last_chapter_id TEXT`);
+  } catch {
+    // column already exists
+  }
+
+  // Migration: add level to chapters if missing
+  try {
+    db.run(`ALTER TABLE chapters ADD COLUMN level INTEGER NOT NULL DEFAULT 0`);
+  } catch {
+    // column already exists
+  }
+
+  // Backfill chapter levels from title patterns
+  const needsBackfill = db.exec(`SELECT COUNT(*) FROM chapters WHERE level = 0 AND (title LIKE '%卷%' OR title LIKE '%章%')`);
+  if (needsBackfill[0]?.values[0]?.[0]) {
+    const allChapters = db.exec(`SELECT id, title FROM chapters WHERE level = 0`);
+    if (allChapters[0]) {
+      for (const row of allChapters[0].values) {
+        const id = row[0] as number;
+        const title = row[1] as string;
+        const level = detectChapterLevel(title);
+        if (level > 0) {
+          db.run(`UPDATE chapters SET level = ? WHERE id = ?`, [level, id]);
+        }
+      }
+      save();
+    }
+  }
 
   // FTS5 not available in sql.js WASM; using LIKE queries instead
   // Indexes for search performance

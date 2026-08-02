@@ -14,7 +14,8 @@ interface BookInfo {
   id: number;
   title: string;
   author: string;
-  chapters: { id: string; title: string; sort_order: number }[];
+  chapters: { id: string; title: string; sort_order: number; level: number }[];
+  last_chapter_id: string | null;
 }
 
 interface Bookmark {
@@ -78,13 +79,16 @@ export function BookReaderPage() {
   const chapters = book?.chapters || [];
 
   useEffect(() => {
-    api<BookInfo>(`/books/${id}`).then((data) => {
+    api<BookInfo>(`/books/${id}`, { token }).then((data) => {
       setBook(data);
       const targetChapter = searchParams.get('chapter');
-      const idx = targetChapter ? data.chapters.findIndex((c) => c.id === targetChapter) : 0;
+      let idx = targetChapter ? data.chapters.findIndex((c) => c.id === targetChapter) : -1;
+      if (idx < 0 && data.last_chapter_id) {
+        idx = data.chapters.findIndex((c) => c.id === data.last_chapter_id);
+      }
       setChapterIndex(idx >= 0 ? idx : 0);
     });
-  }, [id, searchParams]);
+  }, [id, searchParams, token]);
 
   useEffect(() => {
     if (!book || chapters.length === 0) return;
@@ -115,9 +119,11 @@ export function BookReaderPage() {
 
   useEffect(() => {
     if (!token || !book || chapters.length === 0) return;
+    const ch = chapters[chapterIndex];
+    if (!ch) return;
     const progress = (chapterIndex + 1) / chapters.length;
     api(`/shelf/${book.id}/progress`, {
-      method: 'PUT', body: { progress, status: 'reading' }, token,
+      method: 'PUT', body: { progress, status: 'reading', last_chapter_id: ch.id }, token,
     }).catch(() => {});
   }, [chapterIndex, book, token, id, chapters.length]);
 
@@ -228,10 +234,14 @@ export function BookReaderPage() {
               <div className="space-y-0.5">
                 {chapters.map((ch, idx) => (
                   <button key={ch.id} onClick={() => goToChapter(idx)}
-                    className={`block w-full text-left text-sm py-1.5 px-2 rounded truncate ${
+                    className={`block w-full text-left py-1.5 px-2 rounded truncate ${
+                      ch.level === 1 ? 'font-semibold text-sm' : 'text-sm pl-5'
+                    } ${
                       idx === chapterIndex
                         ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'hover:bg-black/5 opacity-80 hover:opacity-100'
+                        : ch.level === 1
+                          ? 'hover:bg-black/5 opacity-90 hover:opacity-100'
+                          : 'hover:bg-black/5 opacity-70 hover:opacity-100'
                     }`}>
                     {ch.title}
                   </button>

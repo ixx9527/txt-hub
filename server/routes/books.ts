@@ -6,6 +6,7 @@ import { authMiddleware, optionalAuth } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { parseEpub } from '../services/epub-parser.js';
 import { epubToTxt } from '../services/txt-converter.js';
+import { detectChapterLevel } from '../db.js';
 
 const router = Router();
 
@@ -52,9 +53,10 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
     if (meta.chapters && meta.chapters.length > 0) {
       for (let i = 0; i < meta.chapters.length; i++) {
         const ch = meta.chapters[i];
+        const level = detectChapterLevel(ch.title);
         db.run(
-          `INSERT INTO chapters (book_id, chapter_id, title, content, sort_order) VALUES (?, ?, ?, ?, ?)`,
-          [bookId, ch.id, ch.title, ch.content, i],
+          `INSERT INTO chapters (book_id, chapter_id, title, content, sort_order, level) VALUES (?, ?, ?, ?, ?, ?)`,
+          [bookId, ch.id, ch.title, ch.content, i, level],
         );
       }
       save();
@@ -214,14 +216,23 @@ router.get('/:id', optionalAuth, (req: Request, res: Response) => {
     const tags = (tagResult[0]?.values || []).map((r) => ({ id: r[0], name: r[1] }));
 
     const chapResult = db.exec(
-      `SELECT chapter_id, title, sort_order FROM chapters WHERE book_id = ? ORDER BY sort_order`,
+      `SELECT chapter_id, title, sort_order, level FROM chapters WHERE book_id = ? ORDER BY sort_order`,
       [id],
     );
     const chapters = (chapResult[0]?.values || []).map((r) => ({
-      id: r[0], title: r[1], sort_order: r[2],
+      id: r[0], title: r[1], sort_order: r[2], level: r[3] as number,
     }));
 
-    res.json({ ...book, categories, tags, chapters });
+    let last_chapter_id: string | null = null;
+    if (req.user) {
+      const ubResult = db.exec(
+        `SELECT last_chapter_id FROM user_books WHERE user_id = ? AND book_id = ?`,
+        [req.user.userId, id],
+      );
+      last_chapter_id = (ubResult[0]?.values[0]?.[0] as string) ?? null;
+    }
+
+    res.json({ ...book, categories, tags, chapters, last_chapter_id });
   } catch (err) {
     console.error('Get book error:', err);
     res.status(500).json({ error: '获取书籍详情失败' });
