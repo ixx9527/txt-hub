@@ -47,13 +47,13 @@ function AppContent() {
                 <Navbar />
                 <div className="flex-1">
                   <Routes>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
-                    <Route path="/book/:id" element={<BookDetailPage />} />
+                    <Route path="/book/:id" element={<RequireAuth><BookDetailPage /></RequireAuth>} />
                     <Route path="/shelf" element={<RequireAuth><ShelfPage /></RequireAuth>} />
-                    <Route path="/search" element={<SearchPage />} />
+                    <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
                   </Routes>
                 </div>
               </div>

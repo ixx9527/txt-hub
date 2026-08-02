@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../hooks/use-api';
+import { useAuth } from '../hooks/use-auth';
 import { BookCard } from '../components/book-card';
 import { CategoryTree } from '../components/category-tree';
 
@@ -25,6 +26,7 @@ export function HomePage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     setLoading(true);
@@ -37,7 +39,7 @@ export function HomePage() {
     if (search) params.set('q', search);
     if (selectedCategory) params.set('category', String(selectedCategory));
 
-    api<{ books: Book[]; total: number }>(`/books?${params}`)
+    api<{ books: Book[]; total: number }>(`/books?${params}`, { token })
       .then((data) => {
         setBooks(data.books);
         setTotal(data.total);

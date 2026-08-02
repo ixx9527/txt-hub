@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../hooks/use-api';
+import { useAuth } from '../hooks/use-auth';
 
 interface SearchResult {
   book_id: number;
@@ -22,16 +23,17 @@ export function SearchPage() {
   const [bookResults, setBookResults] = useState<BookMatch[]>([]);
   const [contentResults, setContentResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const { token } = useAuth();
 
   useEffect(() => {
     if (!q) return;
     setLoading(true);
 
-    api<{ books: BookMatch[] }>(`/books?q=${encodeURIComponent(q)}&limit=10`)
+    api<{ books: BookMatch[] }>(`/books?q=${encodeURIComponent(q)}&limit=10`, { token })
       .then((d) => setBookResults(d.books))
       .catch(() => {});
 
-    api<{ results: SearchResult[] }>(`/books/search?q=${encodeURIComponent(q)}`)
+    api<{ results: SearchResult[] }>(`/books/search?q=${encodeURIComponent(q)}`, { token })
       .then((d) => setContentResults(d.results))
       .catch(() => {})
       .finally(() => setLoading(false));

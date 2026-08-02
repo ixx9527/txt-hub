@@ -69,7 +69,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
   }
 });
 
-router.get('/', optionalAuth, (req: Request, res: Response) => {
+router.get('/', authMiddleware, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -80,8 +80,8 @@ router.get('/', optionalAuth, (req: Request, res: Response) => {
     const tag = req.query.tag as string;
     const search = req.query.q as string;
 
-    let where = '1=1';
-    const params: (string | number)[] = [];
+    let where = 'books.upload_user_id = ?';
+    const params: (string | number)[] = [req.user!.userId];
 
     if (search) {
       where += ` AND (books.title LIKE ? OR books.author LIKE ?)`;
@@ -143,9 +143,9 @@ router.get('/', optionalAuth, (req: Request, res: Response) => {
   }
 });
 
-router.get('/search', (_req: Request, res: Response) => {
+router.get('/search', authMiddleware, (req: Request, res: Response) => {
   try {
-    const q = _req.query.q as string;
+    const q = req.query.q as string;
     if (!q || q.length < 1) {
       res.json({ results: [] });
       return;
@@ -157,9 +157,10 @@ router.get('/search', (_req: Request, res: Response) => {
       `SELECT book_id, chapter_id, title,
               SUBSTR(content, MAX(1, INSTR(LOWER(content), LOWER(?)) - 40), 120) as snippet
        FROM chapters
-       WHERE title LIKE ? OR content LIKE ?
+       WHERE book_id IN (SELECT id FROM books WHERE upload_user_id = ?)
+         AND (title LIKE ? OR content LIKE ?)
        LIMIT 50`,
-      [q, pattern, pattern],
+      [q, req.user!.userId, pattern, pattern],
     );
 
     const results = (result[0]?.values || []).map((row) => ({
@@ -176,7 +177,7 @@ router.get('/search', (_req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', optionalAuth, (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);
@@ -184,8 +185,8 @@ router.get('/:id', optionalAuth, (req: Request, res: Response) => {
     const bookResult = db.exec(
       `SELECT id, title, author, publisher, description, language, isbn, cover_path,
               file_path, file_format, file_size, upload_user_id, created_at, updated_at
-       FROM books WHERE id = ?`,
-      [id],
+       FROM books WHERE id = ? AND upload_user_id = ?`,
+      [id, req.user!.userId],
     );
 
     if (bookResult.length === 0 || bookResult[0].values.length === 0) {
@@ -339,11 +340,11 @@ router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/cover', (req: Request, res: Response) => {
+router.get('/:id/cover', authMiddleware, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);
-    const result = db.exec(`SELECT cover_path FROM books WHERE id = ?`, [id]);
+    const result = db.exec(`SELECT cover_path FROM books WHERE id = ? AND upload_user_id = ?`, [id, req.user!.userId]);
     if (result.length === 0 || result[0].values.length === 0 || !result[0].values[0][0]) {
       res.status(404).json({ error: '封面不存在' });
       return;

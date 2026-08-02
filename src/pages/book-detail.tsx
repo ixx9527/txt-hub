@@ -53,7 +53,7 @@ export function BookDetailPage() {
   };
 
   useEffect(() => {
-    api<BookDetail>(`/books/${id}`)
+    api<BookDetail>(`/books/${id}`, { token })
       .then(setBook)
       .catch(console.error)
       .finally(() => setLoading(false));
