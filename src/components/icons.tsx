@@ -38,6 +38,31 @@ export function CloseIcon({ size = 16, color = 'currentColor' }: { size?: number
   );
 }
 
+export function ChevronLeftIcon({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg style={s(size)} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg style={s(size)} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
+  );
+}
+
+export function ArrowLeftIcon({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg style={s(size)} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
 export function LogoIcon({ size = 28 }: { size?: number }) {
   return (
     <svg style={s(size)} viewBox="0 0 24 24" fill="none" stroke="var(--animal-primary-color)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

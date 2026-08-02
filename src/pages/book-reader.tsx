@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { api } from '../hooks/use-api';
 import { useAuth } from '../hooks/use-auth';
-import { BookmarkIcon } from '../components/icons';
+import { BookmarkIcon, ArrowLeftIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/icons';
 
 interface Chapter {
   id: string;
@@ -204,7 +204,7 @@ export function BookReaderPage() {
       {/* Top bar */}
       <div className={`flex items-center justify-between px-4 py-2 border-b ${theme.border} shrink-0`}>
         <div className="flex items-center gap-3">
-          <Link to={`/book/${id}`} className="text-sm opacity-70 hover:opacity-100">← 返回</Link>
+          <Link to={`/book/${id}`} className="inline-flex items-center gap-1 text-sm opacity-70 hover:opacity-100 transition-opacity"><ArrowLeftIcon size={16} /> 返回</Link>
           <button onClick={() => { setShowToc(!showToc); setShowBookmarks(false); setShowHighlights(false); }} className="text-sm opacity-70 hover:opacity-100">目录</button>
           {user && (
             <>
@@ -377,26 +377,34 @@ export function BookReaderPage() {
       </div>
 
       {/* Bottom navigation */}
-      <div className={`flex items-center justify-between px-4 py-2 border-t ${theme.border} shrink-0`}>
+      <div className={`flex items-center justify-between px-4 py-3 border-t ${theme.border} shrink-0`}>
         <button
           onClick={goPrev}
           disabled={chapterIndex === 0}
-          className="text-sm opacity-70 hover:opacity-100 disabled:opacity-30"
+          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all
+            ${chapterIndex === 0
+              ? 'opacity-30 cursor-not-allowed'
+              : 'opacity-70 hover:opacity-100 hover:bg-black/5'
+            }`}
         >
-          ← 上一章
+          <ChevronLeftIcon size={16} /> 上一章
         </button>
-        <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all"
+            className="h-full bg-blue-500 rounded-full transition-all duration-300"
             style={{ width: `${((chapterIndex + 1) / chapters.length) * 100}%` }}
           />
         </div>
         <button
           onClick={goNext}
           disabled={chapterIndex === chapters.length - 1}
-          className="text-sm opacity-70 hover:opacity-100 disabled:opacity-30"
+          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all
+            ${chapterIndex === chapters.length - 1
+              ? 'opacity-30 cursor-not-allowed'
+              : 'opacity-70 hover:opacity-100 hover:bg-black/5'
+            }`}
         >
-          下一章 →
+          下一章 <ChevronRightIcon size={16} />
         </button>
       </div>
     </div>
