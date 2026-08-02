@@ -105,14 +105,15 @@ router.put('/:bookId/progress', (req: Request, res: Response) => {
     };
 
     db.run(
-      `UPDATE user_books SET
-         progress = COALESCE(?, progress),
-         current_cfi = COALESCE(?, current_cfi),
-         status = COALESCE(?, status),
-         last_chapter_id = COALESCE(?, last_chapter_id),
-         last_read_at = datetime('now')
-       WHERE user_id = ? AND book_id = ?`,
-      [progress ?? null, current_cfi ?? null, status ?? null, last_chapter_id ?? null, userId, bookId],
+      `INSERT INTO user_books (user_id, book_id, progress, status, last_chapter_id, last_read_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(user_id, book_id) DO UPDATE SET
+         progress = COALESCE(excluded.progress, user_books.progress),
+         current_cfi = COALESCE(?, user_books.current_cfi),
+         status = COALESCE(excluded.status, user_books.status),
+         last_chapter_id = COALESCE(excluded.last_chapter_id, user_books.last_chapter_id),
+         last_read_at = datetime('now')`,
+      [userId, bookId, progress ?? null, status ?? null, last_chapter_id ?? null, current_cfi ?? null],
     );
     save();
 
