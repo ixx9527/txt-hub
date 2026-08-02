@@ -33,7 +33,8 @@ router.post('/register', async (req: Request, res: Response) => {
     const db = await getDb();
 
     const existing = db.exec(
-      `SELECT id FROM users WHERE username = '${username.replace(/'/g, "''")}' OR email = '${email.replace(/'/g, "''")}'`
+      `SELECT id FROM users WHERE username = ? OR email = ?`,
+      [username, email],
     );
     if (existing.length > 0 && existing[0].values.length > 0) {
       res.status(409).json({ error: '用户名或邮箱已被注册' });
@@ -80,9 +81,9 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const db = await getDb();
-    const safeLogin = login.replace(/'/g, "''");
     const result = db.exec(
-      `SELECT id, username, email, password_hash, role FROM users WHERE username = '${safeLogin}' OR email = '${safeLogin}'`
+      `SELECT id, username, email, password_hash, role FROM users WHERE username = ? OR email = ?`,
+      [login, login],
     );
 
     if (result.length === 0 || result[0].values.length === 0) {
