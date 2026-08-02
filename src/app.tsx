@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth } from './hooks/use-auth';
 import { DialogProvider } from './components/dialog';
@@ -11,6 +11,12 @@ import { BookDetailPage } from './pages/book-detail';
 import { BookReaderPage } from './pages/book-reader';
 import { ShelfPage } from './pages/shelf';
 import { SearchPage } from './pages/search';
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 function AppContent() {
   const { checkAuth, loading } = useAuth();
@@ -31,7 +37,7 @@ function AppContent() {
     <DialogProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/book/:id/read" element={<BookReaderPage />} />
+          <Route path="/book/:id/read" element={<RequireAuth><BookReaderPage /></RequireAuth>} />
           <Route
             path="*"
             element={
@@ -42,9 +48,9 @@ function AppContent() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/upload" element={<UploadPage />} />
+                    <Route path="/upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
                     <Route path="/book/:id" element={<BookDetailPage />} />
-                    <Route path="/shelf" element={<ShelfPage />} />
+                    <Route path="/shelf" element={<RequireAuth><ShelfPage /></RequireAuth>} />
                     <Route path="/search" element={<SearchPage />} />
                   </Routes>
                 </div>

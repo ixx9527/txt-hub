@@ -33,6 +33,25 @@ export function BookDetailPage() {
   const navigate = useNavigate();
   const dialog = useDialog();
 
+  const handleDownload = async (format: string) => {
+    if (!token || !book) return;
+    try {
+      const resp = await fetch(`/api/books/${book.id}/download?format=${format}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok) throw new Error('下载失败');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${book.title}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      await dialog.alert({ message: '下载失败', type: 'error' });
+    }
+  };
+
   useEffect(() => {
     api<BookDetail>(`/books/${id}`)
       .then(setBook)
@@ -137,29 +156,33 @@ export function BookDetailPage() {
 
               <div className="flex items-center gap-3 mt-4 flex-wrap">
                 <Link
-                  to={`/book/${book.id}/read`}
+                  to={user ? `/book/${book.id}/read` : '/login'}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
                 >
                   开始阅读
                 </Link>
-                {user && (
+                {user ? (
                   <button onClick={handleAddShelf} className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
                     加入书架
                   </button>
+                ) : (
+                  <Link to="/login" className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                    加入书架
+                  </Link>
                 )}
-                <a
-                  href={`/api/books/${book.id}/download?format=${book.file_format}`}
+                <button
+                  onClick={() => user ? handleDownload(book.file_format) : navigate('/login')}
                   className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
                 >
                   下载 {book.file_format.toUpperCase()}
-                </a>
+                </button>
                 {book.file_format === 'epub' && (
-                  <a
-                    href={`/api/books/${book.id}/download?format=txt`}
+                  <button
+                    onClick={() => user ? handleDownload('txt') : navigate('/login')}
                     className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
                   >
                     下载 TXT
-                  </a>
+                  </button>
                 )}
                 {canEdit && (
                   <>

@@ -303,7 +303,7 @@ router.delete('/:id', authMiddleware, (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/download', (req: Request, res: Response) => {
+router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);
