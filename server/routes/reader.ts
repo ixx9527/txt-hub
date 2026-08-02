@@ -140,7 +140,17 @@ router.get('/:bookId/chapters/:chapterId', (req: Request, res: Response) => {
     }
 
     const row = result[0].values[0];
-    res.json({ id: row[0], title: row[1], content: row[2] });
+    const title = row[1] as string;
+    let content = row[2] as string;
+
+    // Strip repeated leading title text from content
+    let stripped = content.trimStart();
+    while (stripped.startsWith(title)) {
+      stripped = stripped.slice(title.length).trimStart();
+    }
+    content = stripped;
+
+    res.json({ id: row[0], title, content });
   } catch (err) {
     res.status(500).json({ error: '获取章节失败' });
   }

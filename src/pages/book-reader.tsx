@@ -343,18 +343,15 @@ export function BookReaderPage() {
         <div className="flex-1 overflow-y-auto" onClick={() => setSelectionMenu(null)}>
           <div ref={contentRef} className="max-w-2xl mx-auto px-6 py-8 relative" onMouseUp={handleMouseUp}>
             {chapter ? (
-              <>
-                <h2 className="text-xl font-bold text-center mb-8">{chapter.title}</h2>
-                <div
-                  style={{
-                    fontSize: `${settings.fontSize}px`,
-                    lineHeight: settings.lineHeight,
-                  }}
-                  className="whitespace-pre-wrap select-text"
-                >
-                  {chapter.content}
-                </div>
-              </>
+              <div
+                style={{
+                  fontSize: `${settings.fontSize}px`,
+                  lineHeight: settings.lineHeight,
+                }}
+                className="whitespace-pre-wrap select-text"
+              >
+                {chapter.content}
+              </div>
             ) : (
               <div className="text-center opacity-50 py-20">加载章节中...</div>
             )}
