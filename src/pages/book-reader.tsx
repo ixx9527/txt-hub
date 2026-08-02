@@ -131,6 +131,16 @@ export function BookReaderPage() {
   const goPrev = () => setChapterIndex((i) => Math.max(0, i - 1));
   const goToChapter = (idx: number) => { setChapterIndex(idx); setShowToc(false); };
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === 'ArrowRight') goNext();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [chapters.length]);
+
   const currentChapterId = chapters[chapterIndex]?.id;
   const isBookmarked = bookmarks.some((b) => b.chapter_id === currentChapterId);
 
