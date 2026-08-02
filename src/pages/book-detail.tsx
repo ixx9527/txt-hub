@@ -176,14 +176,6 @@ export function BookDetailPage() {
                 >
                   下载 {book.file_format.toUpperCase()}
                 </button>
-                {book.file_format === 'epub' && (
-                  <button
-                    onClick={() => user ? handleDownload('txt') : navigate('/login')}
-                    className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
-                  >
-                    下载 TXT
-                  </button>
-                )}
                 {canEdit && (
                   <>
                     <button onClick={() => { setEditing(true); setEditData({ title: book.title, author: book.author, publisher: book.publisher || '', description: book.description || '', language: book.language, isbn: book.isbn || '' }); }} className="text-sm text-gray-500 hover:text-blue-600">
