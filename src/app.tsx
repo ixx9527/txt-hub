@@ -9,7 +9,6 @@ import { RegisterPage } from './pages/register';
 import { UploadPage } from './pages/upload';
 import { BookDetailPage } from './pages/book-detail';
 import { BookReaderPage } from './pages/book-reader';
-import { ShelfPage } from './pages/shelf';
 import { SearchPage } from './pages/search';
 import { TxtToEpubPage } from './pages/txt-to-epub';
 
@@ -52,7 +51,6 @@ function AppContent() {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
                     <Route path="/book/:id" element={<RequireAuth><BookDetailPage /></RequireAuth>} />
-                    <Route path="/shelf" element={<RequireAuth><ShelfPage /></RequireAuth>} />
                     <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
                   </Routes>
                 </div>

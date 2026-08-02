@@ -59,16 +59,6 @@ export function BookDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleAddShelf = async () => {
-    if (!token || !book) return;
-    try {
-      await api('/shelf', { method: 'POST', body: { book_id: book.id }, token });
-      await dialog.alert({ message: '已加入书架', type: 'success' });
-    } catch (err) {
-      await dialog.alert({ message: err instanceof Error ? err.message : '操作失败', type: 'error' });
-    }
-  };
-
   const handleDelete = async () => {
     if (!token || !book) return;
     const confirmed = await dialog.confirm({ title: '删除书籍', message: `确定要删除《${book.title}》吗？此操作不可恢复。`, type: 'warning', confirmText: '删除' });
@@ -156,22 +146,13 @@ export function BookDetailPage() {
 
               <div className="flex items-center gap-3 mt-4 flex-wrap">
                 <Link
-                  to={user ? `/book/${book.id}/read` : '/login'}
+                  to={`/book/${book.id}/read`}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
                 >
                   开始阅读
                 </Link>
-                {user ? (
-                  <button onClick={handleAddShelf} className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-                    加入书架
-                  </button>
-                ) : (
-                  <Link to="/login" className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-                    加入书架
-                  </Link>
-                )}
                 <button
-                  onClick={() => user ? handleDownload(book.file_format) : navigate('/login')}
+                  onClick={() => handleDownload(book.file_format)}
                   className="border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
                 >
                   下载 {book.file_format.toUpperCase()}

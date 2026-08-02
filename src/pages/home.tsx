@@ -16,6 +16,9 @@ interface Book {
   created_at: string;
   categories: string[];
   tags: string[];
+  read_status: string | null;
+  read_progress: number;
+  last_read_at: string | null;
 }
 
 export function HomePage() {

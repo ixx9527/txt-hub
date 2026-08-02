@@ -32,7 +32,6 @@ export function Navbar() {
             <>
               <Link to="/txt-to-epub" className="text-gray-600 hover:text-blue-600">制书</Link>
               <Link to="/upload" className="text-gray-600 hover:text-blue-600">上传</Link>
-              <Link to="/shelf" className="text-gray-600 hover:text-blue-600">我的书架</Link>
             </>
           )}
         </nav>

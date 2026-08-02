@@ -9,9 +9,17 @@ interface BookCardProps {
   description?: string | null;
   file_format: string;
   tags?: string[];
+  read_status?: string | null;
+  read_progress?: number;
 }
 
-export function BookCard({ id, title, author, cover_path, description, file_format, tags }: BookCardProps) {
+const STATUS_LABELS: Record<string, string> = {
+  want: '想读',
+  reading: '在读',
+  finished: '读过',
+};
+
+export function BookCard({ id, title, author, cover_path, description, file_format, tags, read_status, read_progress }: BookCardProps) {
   return (
     <Link
       to={`/book/${id}`}
@@ -32,11 +40,28 @@ export function BookCard({ id, title, author, cover_path, description, file_form
         <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
           {file_format.toUpperCase()}
         </span>
+        {read_status && read_status !== 'want' && (
+          <span className={`absolute top-2 left-2 text-xs px-1.5 py-0.5 rounded ${
+            read_status === 'reading' ? 'bg-green-500/80 text-white' :
+            read_status === 'finished' ? 'bg-blue-500/80 text-white' :
+            'bg-black/60 text-white'
+          }`}>
+            {STATUS_LABELS[read_status] || read_status}
+          </span>
+        )}
       </div>
       <div className="p-3">
         <h3 className="font-medium text-sm text-gray-800 truncate">{title}</h3>
         <p className="text-xs text-gray-500 mt-1">{author}</p>
-        {description && (
+        {read_progress != null && read_progress > 0 && (
+          <div className="mt-2">
+            <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round(read_progress * 100)}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5 text-right">{Math.round(read_progress * 100)}%</p>
+          </div>
+        )}
+        {description && !read_progress && (
           <p className="text-xs text-gray-400 mt-1 line-clamp-2">{description}</p>
         )}
         {tags && tags.length > 0 && (

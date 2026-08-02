@@ -109,17 +109,19 @@ router.get('/', authMiddleware, (req: Request, res: Response) => {
       `SELECT books.id, books.title, books.author, books.description, books.cover_path,
               books.file_format, books.file_size, books.language, books.created_at,
               GROUP_CONCAT(DISTINCT categories.name) as categories,
-              GROUP_CONCAT(DISTINCT tags.name) as tags
+              GROUP_CONCAT(DISTINCT tags.name) as tags,
+              ub.status as read_status, ub.progress as read_progress, ub.last_read_at
        FROM books
        LEFT JOIN book_categories ON books.id = book_categories.book_id
        LEFT JOIN categories ON book_categories.category_id = categories.id
        LEFT JOIN book_tags ON books.id = book_tags.book_id
        LEFT JOIN tags ON book_tags.tag_id = tags.id
+       LEFT JOIN user_books ub ON ub.book_id = books.id AND ub.user_id = ?
        WHERE ${where}
        GROUP BY books.id
        ORDER BY books.${orderCol} ${orderDir}
        LIMIT ? OFFSET ?`,
-      [...params, limit, offset],
+      [...params, req.user!.userId, limit, offset],
     );
 
     const books = (result[0]?.values || []).map((row) => ({
@@ -134,6 +136,9 @@ router.get('/', authMiddleware, (req: Request, res: Response) => {
       created_at: row[8],
       categories: row[9] ? (row[9] as string).split(',') : [],
       tags: row[10] ? (row[10] as string).split(',') : [],
+      read_status: row[11] || null,
+      read_progress: row[12] || 0,
+      last_read_at: row[13] || null,
     }));
 
     res.json({ books, total, page, limit });
