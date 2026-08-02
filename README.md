@@ -2,8 +2,6 @@
 
 EPUB 书籍管理平台，支持上传、阅读、收藏，内置 TXT 转 EPUB 制书工具。
 
-在线地址：[txthub.ixx9527.xin](https://txthub.ixx9527.xin)
-
 ## 功能
 
 ### 书库
