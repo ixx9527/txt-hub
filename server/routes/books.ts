@@ -216,7 +216,7 @@ router.get('/:id', optionalAuth, (req: Request, res: Response) => {
     const tags = (tagResult[0]?.values || []).map((r) => ({ id: r[0], name: r[1] }));
 
     const chapResult = db.exec(
-      `SELECT chapter_id, title, sort_order, level FROM chapters WHERE book_id = ? ORDER BY sort_order`,
+      `SELECT chapter_id, title, sort_order, level FROM chapters WHERE book_id = ? AND chapter_id != 'cover' ORDER BY sort_order`,
       [id],
     );
     const chapters = (chapResult[0]?.values || []).map((r) => ({
