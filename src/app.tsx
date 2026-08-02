@@ -38,13 +38,12 @@ function AppContent() {
       <BrowserRouter>
         <Routes>
           <Route path="/book/:id/read" element={<RequireAuth><BookReaderPage /></RequireAuth>} />
-          <Route path="/txt-to-epub" element={<RequireAuth><TxtToEpubPage /></RequireAuth>} />
           <Route
             path="*"
             element={
               <div className="min-h-screen flex flex-col bg-gray-50">
                 <Navbar />
-                <div className="flex-1">
+                <div className="flex-1 flex flex-col overflow-hidden">
                   <Routes>
                     <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
                     <Route path="/login" element={<LoginPage />} />
@@ -52,6 +51,7 @@ function AppContent() {
                     <Route path="/upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
                     <Route path="/book/:id" element={<RequireAuth><BookDetailPage /></RequireAuth>} />
                     <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
+                    <Route path="/txt-to-epub" element={<RequireAuth><TxtToEpubPage /></RequireAuth>} />
                   </Routes>
                 </div>
               </div>
