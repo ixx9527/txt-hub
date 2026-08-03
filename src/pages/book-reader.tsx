@@ -94,7 +94,7 @@ export function BookReaderPage() {
     if (!book || chapters.length === 0) return;
     const ch = chapters[chapterIndex];
     if (!ch) return;
-    api<Chapter>(`/reader/${id}/chapters/${ch.id}`)
+    api<Chapter>(`/reader/${id}/chapters/${ch.id}`, { token })
       .then(setChapter)
       .catch(console.error);
   }, [book, chapterIndex, id, chapters]);

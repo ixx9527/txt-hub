@@ -176,6 +176,57 @@ function initTables(db: Database): void {
     // column already exists
   }
 
+  // Migration: add locator, version, updated_at to user_books
+  try { db.run(`ALTER TABLE user_books ADD COLUMN locator TEXT`); } catch { /* exists */ }
+  try { db.run(`ALTER TABLE user_books ADD COLUMN version INTEGER NOT NULL DEFAULT 1`); } catch { /* exists */ }
+  try { db.run(`ALTER TABLE user_books ADD COLUMN updated_at TEXT`); } catch { /* exists */ }
+
+  // Migration: add content_hash to books
+  try { db.run(`ALTER TABLE books ADD COLUMN content_hash TEXT`); } catch { /* exists */ }
+
+  // New tables for sync support
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tts_progress (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+      locator TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, book_id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reading_sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      duration_seconds REAL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS deleted_books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      book_id INTEGER NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT (datetime('now')),
+      delete_type TEXT NOT NULL DEFAULT 'shelf'
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      setting_key TEXT NOT NULL,
+      setting_value TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, setting_key)
+    )
+  `);
+
   // Backfill chapter levels from title patterns
   const needsBackfill = db.exec(`SELECT COUNT(*) FROM chapters WHERE level = 0 AND (title LIKE '%卷%' OR title LIKE '%章%')`);
   if (needsBackfill[0]?.values[0]?.[0]) {
@@ -201,8 +252,14 @@ function initTables(db: Database): void {
   db.run(`CREATE INDEX IF NOT EXISTS idx_books_title ON books(title)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_books_author ON books(author)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_books_format ON books(file_format)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_books_content_hash ON books(content_hash)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_user_books_user ON user_books(user_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_user_books_updated ON user_books(user_id, updated_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id, book_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_highlights_user ON highlights(user_id, book_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_chapters_book ON chapters(book_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_tts_progress_user ON tts_progress(user_id, book_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_reading_sessions_user ON reading_sessions(user_id, created_at)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_deleted_books_user ON deleted_books(user_id, deleted_at)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings(user_id)`);
 }

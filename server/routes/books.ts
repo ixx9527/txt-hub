@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { getDb, getDbSync, save } from '../db.js';
@@ -7,6 +8,13 @@ import { upload } from '../middleware/upload.js';
 import { parseEpub } from '../services/epub-parser.js';
 import { epubToTxt } from '../services/txt-converter.js';
 import { detectChapterLevel } from '../db.js';
+
+function computeFileHash(filePath: string): string {
+  const hash = crypto.createHash('sha256');
+  const buffer = fs.readFileSync(filePath);
+  hash.update(buffer);
+  return `sha256:${hash.digest('hex')}`;
+}
 
 const router = Router();
 
@@ -24,12 +32,13 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
     const originalName = path.basename(rawName, ext);
 
     const meta = await parseEpub(req.file.path, format, originalName);
+    const contentHash = computeFileHash(req.file.path);
 
     const db = await getDb();
-    
+
     db.run(
-      `INSERT INTO books (title, author, publisher, description, language, isbn, cover_path, file_path, file_format, file_size, upload_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO books (title, author, publisher, description, language, isbn, cover_path, file_path, file_format, file_size, upload_user_id, content_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         meta.title || originalName,
         meta.author || '佚名',
@@ -42,6 +51,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
         format,
         req.file.size,
         req.user!.userId,
+        contentHash,
       ],
     );
 
@@ -179,6 +189,40 @@ router.get('/search', authMiddleware, (req: Request, res: Response) => {
   } catch (err) {
     console.error('Search error:', err);
     res.status(500).json({ error: '搜索失败' });
+  }
+});
+
+// Lookup book by content hash (for deduplication)
+router.get('/by-hash/:sha256', authMiddleware, (req: Request, res: Response) => {
+  try {
+    const db = getDbSync();
+    const sha256 = req.params.sha256;
+    const userId = req.user!.userId;
+
+    const result = db.exec(
+      `SELECT id, title, author, file_format, file_size, content_hash, created_at
+       FROM books WHERE content_hash = ? AND upload_user_id = ?`,
+      [sha256, userId],
+    );
+
+    if (!result[0]?.values[0]) {
+      res.status(404).json({ error: '未找到匹配书籍' });
+      return;
+    }
+
+    const row = result[0].values[0];
+    res.json({
+      id: row[0],
+      title: row[1],
+      author: row[2],
+      file_format: row[3],
+      file_size: row[4],
+      content_hash: row[5],
+      created_at: row[6],
+    });
+  } catch (err) {
+    console.error('Lookup by hash error:', err);
+    res.status(500).json({ error: '查找失败' });
   }
 });
 
@@ -358,8 +402,53 @@ router.get('/:id/cover', (req: Request, res: Response) => {
       return;
     }
     res.sendFile(result[0].values[0][0] as string);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: '获取封面失败' });
+  }
+});
+
+// DELETE cloud file — hard delete book record + file, with tombstone
+router.delete('/:id/cloud', authMiddleware, (req: Request, res: Response) => {
+  try {
+    const db = getDbSync();
+    const id = parseInt(req.params.id);
+    const userId = req.user!.userId;
+
+    const bookResult = db.exec(
+      `SELECT upload_user_id, file_path, cover_path FROM books WHERE id = ?`,
+      [id],
+    );
+    if (!bookResult[0]?.values[0]) {
+      res.status(404).json({ error: '书籍不存在' });
+      return;
+    }
+
+    const ownerId = bookResult[0].values[0][0] as number;
+    const filePath = bookResult[0].values[0][1] as string;
+    const coverPath = bookResult[0].values[0][2] as string;
+
+    if (userId !== ownerId && req.user!.role !== 'admin') {
+      res.status(403).json({ error: '无权删除' });
+      return;
+    }
+
+    // Record tombstone for sync
+    db.run(
+      `INSERT INTO deleted_books (user_id, book_id, delete_type) VALUES (?, ?, 'file')`,
+      [userId, id],
+    );
+
+    // Delete book record (cascades to user_books, chapters, etc.)
+    db.run(`DELETE FROM books WHERE id = ?`, [id]);
+    save();
+
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (coverPath && fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Cloud delete error:', err);
+    res.status(500).json({ error: '删除云端文件失败' });
   }
 });
 

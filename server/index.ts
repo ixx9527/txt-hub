@@ -10,6 +10,9 @@ import shelfRoutes from './routes/shelf.js';
 import categoryRoutes from './routes/categories.js';
 import tagRoutes from './routes/tags.js';
 import readerRoutes from './routes/reader.js';
+import syncRoutes from './routes/sync.js';
+import readingSessionRoutes from './routes/reading-sessions.js';
+import settingsRoutes from './routes/settings.js';
 
 const app = express();
 const PORT = 3847;
@@ -64,6 +67,9 @@ app.use('/api/shelf', shelfRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/reader', readerRoutes);
+app.use('/api/sync', syncRoutes);
+app.use('/api/reading-sessions', readingSessionRoutes);
+app.use('/api/user', settingsRoutes);
 
 // AI cover generation (existing)
 app.post('/api/generate-cover', aiLimiter, aiHourLimiter, async (req, res) => {
