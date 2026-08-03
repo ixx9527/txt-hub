@@ -9,7 +9,7 @@ interface Book {
   title: string;
   author: string;
   description: string | null;
-  cover_path: string | null;
+  has_cover?: boolean;
   file_format: string;
   file_size: number;
   language: string;

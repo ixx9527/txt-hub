@@ -21,8 +21,8 @@ router.post('/register', async (req: Request, res: Response) => {
       res.status(400).json({ error: '用户名长度 2-30 个字符' });
       return;
     }
-    if (password.length < 6) {
-      res.status(400).json({ error: '密码至少 6 个字符' });
+    if (password.length < 6 || password.length > 128) {
+      res.status(400).json({ error: '密码长度 6-128 个字符' });
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

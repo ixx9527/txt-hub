@@ -109,6 +109,12 @@ router.post('/:id/books', authMiddleware, (req: Request, res: Response) => {
       return;
     }
 
+    const bookResult = db.exec(`SELECT upload_user_id FROM books WHERE id = ?`, [book_id]);
+    if (!bookResult[0]?.values[0] || bookResult[0].values[0][0] !== req.user!.userId) {
+      res.status(403).json({ error: '无权操作该书籍' });
+      return;
+    }
+
     db.run(`INSERT OR IGNORE INTO book_categories (book_id, category_id) VALUES (?, ?)`, [book_id, categoryId]);
     save();
 
@@ -124,6 +130,12 @@ router.delete('/:id/books/:bookId', authMiddleware, (req: Request, res: Response
     const db = getDbSync();
     const categoryId = parseInt(req.params.id);
     const bookId = parseInt(req.params.bookId);
+
+    const bookResult = db.exec(`SELECT upload_user_id FROM books WHERE id = ?`, [bookId]);
+    if (!bookResult[0]?.values[0] || bookResult[0].values[0][0] !== req.user!.userId) {
+      res.status(403).json({ error: '无权操作该书籍' });
+      return;
+    }
 
     db.run(`DELETE FROM book_categories WHERE book_id = ? AND category_id = ?`, [bookId, categoryId]);
     save();

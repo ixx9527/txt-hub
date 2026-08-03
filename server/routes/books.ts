@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { getDb, getDbSync, save } from '../db.js';
-import { authMiddleware, optionalAuth } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { parseEpub } from '../services/epub-parser.js';
 import { epubToTxt } from '../services/txt-converter.js';
@@ -129,7 +129,7 @@ router.get('/', authMiddleware, (req: Request, res: Response) => {
       title: row[1],
       author: row[2],
       description: row[3],
-      cover_path: row[4],
+      has_cover: !!row[4],
       file_format: row[5],
       file_size: row[6],
       language: row[7],
@@ -187,11 +187,12 @@ router.get('/:id', authMiddleware, (req: Request, res: Response) => {
     const db = getDbSync();
     const id = parseInt(req.params.id);
 
+    const isAdmin = req.user!.role === 'admin';
     const bookResult = db.exec(
       `SELECT id, title, author, publisher, description, language, isbn, cover_path,
               file_path, file_format, file_size, upload_user_id, created_at, updated_at
-       FROM books WHERE id = ? AND upload_user_id = ?`,
-      [id, req.user!.userId],
+       FROM books WHERE id = ?${isAdmin ? '' : ' AND upload_user_id = ?'}`,
+      isAdmin ? [id] : [id, req.user!.userId],
     );
 
     if (bookResult.length === 0 || bookResult[0].values.length === 0) {
@@ -200,11 +201,13 @@ router.get('/:id', authMiddleware, (req: Request, res: Response) => {
     }
 
     const row = bookResult[0].values[0];
+    const ownerId = row[11] as number;
     const book = {
       id: row[0], title: row[1], author: row[2], publisher: row[3],
-      description: row[4], language: row[5], isbn: row[6], cover_path: row[7],
-      file_path: row[8], file_format: row[9], file_size: row[10],
-      upload_user_id: row[11], created_at: row[12], updated_at: row[13],
+      description: row[4], language: row[5], isbn: row[6],
+      file_format: row[9], file_size: row[10],
+      created_at: row[12], updated_at: row[13],
+      can_edit: req.user!.userId === ownerId || isAdmin,
     };
 
     const catResult = db.exec(
@@ -315,7 +318,7 @@ router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const format = (req.query.format as string) || 'epub';
 
-    const result = db.exec(`SELECT title, file_path, file_format FROM books WHERE id = ?`, [id]);
+    const result = db.exec(`SELECT title, file_path, file_format FROM books WHERE id = ? AND upload_user_id = ?`, [id, req.user!.userId]);
     if (result.length === 0 || result[0].values.length === 0) {
       res.status(404).json({ error: '书籍不存在' });
       return;
@@ -345,11 +348,11 @@ router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/cover', authMiddleware, (req: Request, res: Response) => {
+router.get('/:id/cover', (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);
-    const result = db.exec(`SELECT cover_path FROM books WHERE id = ? AND upload_user_id = ?`, [id, req.user!.userId]);
+    const result = db.exec(`SELECT cover_path FROM books WHERE id = ?`, [id]);
     if (result.length === 0 || result[0].values.length === 0 || !result[0].values[0][0]) {
       res.status(404).json({ error: '封面不存在' });
       return;

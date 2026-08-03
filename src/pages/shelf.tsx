@@ -9,7 +9,7 @@ interface ShelfBook {
   id: number;
   title: string;
   author: string;
-  cover_path: string | null;
+  has_cover?: boolean;
   file_format: string;
   status: string;
   progress: number;
@@ -82,8 +82,8 @@ export function ShelfPage() {
           {books.map((book) => (
             <div key={book.id} className="flex items-center gap-4 border rounded-lg p-3 hover:shadow-sm">
               <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
-                {book.cover_path ? (
-                  <img src={`/uploads/${book.cover_path.split('uploads/')[1]}`} alt="" className="w-full h-full object-cover" />
+                {book.has_cover ? (
+                  <img src={`/api/books/${book.id}/cover`} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-300">
                     <BookIcon size={24} />

@@ -4,6 +4,17 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+function verifyBookOwnership(req: Request, res: Response, next: () => void): void {
+  const db = getDbSync();
+  const bookId = parseInt(req.params.bookId);
+  const result = db.exec(`SELECT upload_user_id FROM books WHERE id = ?`, [bookId]);
+  if (!result[0]?.values[0] || result[0].values[0][0] !== req.user!.userId) {
+    res.status(403).json({ error: '无权访问该书籍' });
+    return;
+  }
+  next();
+}
+
 // Bookmarks
 router.get('/:bookId/bookmarks', authMiddleware, (req: Request, res: Response) => {
   try {
@@ -123,7 +134,7 @@ router.delete('/:bookId/highlights/:id', authMiddleware, (req: Request, res: Res
 });
 
 // Chapter content for reader
-router.get('/:bookId/chapters/:chapterId', (req: Request, res: Response) => {
+router.get('/:bookId/chapters/:chapterId', authMiddleware, verifyBookOwnership, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const bookId = parseInt(req.params.bookId);
@@ -157,7 +168,7 @@ router.get('/:bookId/chapters/:chapterId', (req: Request, res: Response) => {
 });
 
 // Book internal search
-router.get('/:bookId/search', (req: Request, res: Response) => {
+router.get('/:bookId/search', authMiddleware, verifyBookOwnership, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const bookId = parseInt(req.params.bookId);

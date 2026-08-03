@@ -13,11 +13,10 @@ interface BookDetail {
   description: string | null;
   language: string;
   isbn: string | null;
-  cover_path: string | null;
   file_format: string;
   file_size: number;
-  upload_user_id: number | null;
   created_at: string;
+  can_edit: boolean;
   categories: { id: number; name: string }[];
   tags: { id: number; name: string }[];
   chapters: { id: string; title: string; sort_order: number; level: number }[];
@@ -29,7 +28,7 @@ export function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ title: '', author: '', publisher: '', description: '', language: '', isbn: '' });
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const dialog = useDialog();
 
@@ -85,24 +84,27 @@ export function BookDetailPage() {
   if (loading) return <div className="text-center text-gray-400 py-20">加载中...</div>;
   if (!book) return <div className="text-center text-gray-400 py-20">书籍不存在</div>;
 
-  const canEdit = user && (user.id === book.upload_user_id || user.role === 'admin');
+  const canEdit = book.can_edit;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
       <div className="flex gap-8">
         <div className="w-48 shrink-0">
           <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
-            {book.cover_path ? (
-              <img
-                src={`/uploads/${book.cover_path.split('uploads/')[1]}`}
-                alt={book.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <BookIcon size={64} />
-              </div>
-            )}
+            <img
+              src={`/api/books/${book.id}/cover`}
+              alt={book.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                img.style.display = 'none';
+                const fallback = img.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            <div className="w-full h-full items-center justify-center text-gray-400 absolute inset-0" style={{ display: 'none' }}>
+              <BookIcon size={64} />
+            </div>
           </div>
         </div>
 

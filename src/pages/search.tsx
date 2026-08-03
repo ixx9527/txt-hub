@@ -14,7 +14,7 @@ interface BookMatch {
   id: number;
   title: string;
   author: string;
-  cover_path: string | null;
+  has_cover?: boolean;
 }
 
 export function SearchPage() {
@@ -59,8 +59,8 @@ export function SearchPage() {
                   <Link key={book.id} to={`/book/${book.id}`}
                     className="flex items-center gap-3 p-3 border rounded-lg hover:shadow-sm">
                     <div className="w-10 h-14 bg-gray-100 rounded overflow-hidden shrink-0">
-                      {book.cover_path && (
-                        <img src={`/uploads/${book.cover_path.split('uploads/')[1]}`} alt="" className="w-full h-full object-cover" />
+                      {book.has_cover && (
+                        <img src={`/api/books/${book.id}/cover`} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
                     <div>

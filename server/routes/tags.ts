@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getDbSync, save } from '../db.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -51,7 +51,7 @@ router.post('/', authMiddleware, (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', authMiddleware, (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, adminMiddleware, (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);

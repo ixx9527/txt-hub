@@ -5,7 +5,7 @@ interface BookCardProps {
   id: number;
   title: string;
   author: string;
-  cover_path: string | null;
+  has_cover?: boolean;
   description?: string | null;
   file_format: string;
   tags?: string[];
@@ -19,16 +19,16 @@ const STATUS_LABELS: Record<string, string> = {
   finished: '读过',
 };
 
-export function BookCard({ id, title, author, cover_path, description, file_format, tags, read_status, read_progress }: BookCardProps) {
+export function BookCard({ id, title, author, has_cover, description, file_format, tags, read_status, read_progress }: BookCardProps) {
   return (
     <Link
       to={`/book/${id}`}
       className="group border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
     >
       <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
-        {cover_path ? (
+        {has_cover ? (
           <img
-            src={`/uploads/${cover_path.split('uploads/')[1]}`}
+            src={`/api/books/${id}/cover`}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
           />
