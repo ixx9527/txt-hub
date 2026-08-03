@@ -7,10 +7,8 @@ import { ChapterTree } from '../components/chapter-tree';
 import { ChapterPreview } from '../components/chapter-preview';
 import { ExportButton } from '../components/export-button';
 import { UploadIcon } from '../components/icons';
-import { detectAndDecode } from '../core/encoding';
-import { trimText } from '../core/trimmer';
-import { parseChapters } from '../core/chapter-parser';
-import { buildEpub } from '../core/epub-builder';
+import { parseInWorker, buildEpubInWorker } from '../core/workers';
+import type { ParseProgressStep } from '../core/parse-worker';
 import { useAuth } from '../hooks/use-auth';
 import { apiUpload } from '../hooks/use-api';
 import type { BookMeta, Chapter, ParseResult } from '../types';
@@ -27,22 +25,31 @@ export function TxtToEpubPage() {
   });
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [parseStep, setParseStep] = useState<ParseProgressStep | null>(null);
   const [encoding, setEncoding] = useState<string | null>(null);
 
-  const handleFileLoaded = useCallback((buffer: ArrayBuffer, fileName: string) => {
-    const { encoding: enc, text } = detectAndDecode(buffer);
-    setEncoding(enc);
-    const cleaned = trimText(text);
-    const result = parseChapters(cleaned);
-    setParseResult(result);
+  const handleFileLoaded = useCallback(async (buffer: ArrayBuffer, fileName: string) => {
+    setProcessing(true);
+    setParseStep(null);
+    try {
+      const { encoding: enc, result } = await parseInWorker(buffer, fileName, (step) => {
+        setParseStep(step);
+      });
+      setEncoding(enc);
+      setParseResult(result);
 
-    const baseName = fileName.replace(/\.txt$/i, '');
-    setMeta((prev) => ({ ...prev, title: baseName }));
+      const baseName = fileName.replace(/\.txt$/i, '');
+      setMeta((prev) => ({ ...prev, title: baseName }));
 
-    const firstChapter = result.hasVolumeStructure
-      ? result.volumes[0]?.chapters[0] || null
-      : result.chapters[0] || null;
-    setSelectedChapter(firstChapter);
+      const firstChapter = result.hasVolumeStructure
+        ? result.volumes[0]?.chapters[0] || null
+        : result.chapters[0] || null;
+      setSelectedChapter(firstChapter);
+    } finally {
+      setProcessing(false);
+      setParseStep(null);
+    }
   }, []);
 
   const handleClear = useCallback(() => {
@@ -57,7 +64,7 @@ export function TxtToEpubPage() {
     if (!parseResult || !coverBlob || !token) return;
     setUploading(true);
     try {
-      const blob = await buildEpub({
+      const blob = await buildEpubInWorker({
         meta,
         volumes: parseResult.volumes,
         chapters: parseResult.chapters,
@@ -125,7 +132,22 @@ export function TxtToEpubPage() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {parseResult ? (
+        {processing ? (
+          <div className="flex-1 flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <svg className="mx-auto h-10 w-10 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <p className="mt-4 text-sm text-gray-500">
+                {parseStep === 'detecting' && '正在检测编码...'}
+                {parseStep === 'trimming' && '正在清洗文本...'}
+                {parseStep === 'parsing' && '正在解析章节...'}
+                {parseStep === null && '正在准备解析...'}
+              </p>
+            </div>
+          </div>
+        ) : parseResult ? (
           <>
             <div className="w-56 border-r border-gray-200 bg-gray-50 overflow-y-auto p-3 shrink-0">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">

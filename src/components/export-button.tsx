@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveAs } from 'file-saver';
-import { buildEpub } from '../core/epub-builder';
+import { buildEpubInWorker } from '../core/workers';
 import type { BookMeta, ParseResult } from '../types';
 
 interface Props {
@@ -18,7 +18,7 @@ export function ExportButton({ meta, result, coverBlob }: Props) {
     if (!result || !coverBlob) return;
     setExporting(true);
     try {
-      const blob = await buildEpub({
+      const blob = await buildEpubInWorker({
         meta,
         volumes: result.volumes,
         chapters: result.chapters,
