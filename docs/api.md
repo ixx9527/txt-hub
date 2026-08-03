@@ -15,6 +15,9 @@
 - [Categories - 分类](#categories---分类)
 - [Tags - 标签](#tags---标签)
 - [Reader - 阅读器](#reader---阅读器)
+- [Sync - 增量同步](#sync---增量同步)
+- [Reading Sessions - 阅读统计](#reading-sessions---阅读统计)
+- [User Settings - 用户设置](#user-settings---用户设置)
 - [AI 封面生成](#ai-封面生成)
 - [Health](#health)
 
@@ -183,6 +186,31 @@ Token payload 结构：
 }
 ```
 
+上传时自动计算文件 SHA256 哈希并存入 `content_hash` 字段，用于去重。
+
+---
+
+### GET `/api/books/by-hash/:sha256`
+
+按内容哈希查找书籍（去重）。**需要认证。** 仅查找当前用户的书籍。
+
+**响应 `200`：**
+
+```json
+{
+  "id": 1,
+  "title": "string",
+  "author": "string",
+  "file_format": "epub",
+  "file_size": 123456,
+  "content_hash": "sha256:abc123...",
+  "created_at": "2025-01-01 00:00:00"
+}
+```
+
+**错误：**
+- `404` — 未找到匹配书籍
+
 ---
 
 ### GET `/api/books`
@@ -336,6 +364,22 @@ Token payload 结构：
 
 ---
 
+### DELETE `/api/books/:id/cloud`
+
+删除云端文件（硬删除）。**需要认证。** 删除书籍记录、关联文件和封面，并写入删除墓碑（`delete_type=file`）供增量同步使用。
+
+**响应 `200`：**
+
+```json
+{ "success": true }
+```
+
+**错误：**
+- `403` — 无权删除
+- `404` — 书籍不存在
+
+---
+
 ### GET `/api/books/:id/download`
 
 下载书籍文件。**需要认证。**
@@ -420,7 +464,7 @@ Token payload 结构：
 
 ### DELETE `/api/shelf/:bookId`
 
-从书架移除书籍。
+从书架移除书籍（软删除）。会写入删除墓碑（`delete_type=shelf`）供增量同步使用，同时清除用户的阅读进度记录。
 
 **响应 `200`：**
 
@@ -430,15 +474,47 @@ Token payload 结构：
 
 ---
 
+### GET `/api/shelf/:bookId/progress`
+
+获取精确阅读进度。**需要认证。**
+
+**响应 `200`：**
+
+```json
+{
+  "progress": 0.75,
+  "locator": "{\"type\":\"ReadingProgression\",\"href\":\"chapter-2\",\"locations\":{\"progression\":0.5}}",
+  "current_cfi": "epubcfi(/6/4...) | null",
+  "status": "reading",
+  "version": 3,
+  "updated_at": "2026-08-03 12:00:00",
+  "last_chapter_id": "chapter-5 | null"
+}
+```
+
+`locator` 为通用 Readium Locator JSON 字符串，适用于任意格式的定位。`current_cfi` 为向后兼容的 EPUB CFI 字段。`version` 为乐观并发版本号，每次更新递增。
+
+**错误：**
+- `404` — 未找到阅读进度
+
+---
+
 ### PUT `/api/shelf/:bookId/progress`
 
-更新阅读进度（upsert）。
+更新阅读进度（upsert）。**需要认证。**
+
+**请求头（可选）：**
+
+| 头部 | 说明 |
+|------|------|
+| `If-Match` | 客户端已知的 `version` 值（带引号，如 `"3"`）。用于冲突检测。 |
 
 **请求体（所有字段可选）：**
 
 ```json
 {
   "progress": 0.75,
+  "locator": "{\"type\":\"ReadingProgression\",\"href\":\"chapter-2\"}",
   "current_cfi": "epubcfi(/6/4...)",
   "status": "reading",
   "last_chapter_id": "chapter-5"
@@ -448,8 +524,64 @@ Token payload 结构：
 **响应 `200`：**
 
 ```json
+{
+  "success": true,
+  "version": 4,
+  "updated_at": "2026-08-03 12:05:00"
+}
+```
+
+**冲突检测：** 当提供 `If-Match` 头部时，服务端会比较版本号。匹配则更新成功并返回新 `version`；不匹配则返回 `409`：
+
+```json
+{
+  "error": "版本冲突",
+  "server_version": 5
+}
+```
+
+---
+
+### GET `/api/shelf/:bookId/tts-progress`
+
+获取 TTS 朗读位置。**需要认证。**
+
+**响应 `200`：**
+
+```json
+{
+  "locator": "{\"href\":\"chapter-3\",\"offset\":1234}",
+  "updated_at": "2026-08-03 12:00:00"
+}
+```
+
+**错误：**
+- `404` — 未找到 TTS 进度
+
+---
+
+### PUT `/api/shelf/:bookId/tts-progress`
+
+更新 TTS 朗读位置（upsert）。**需要认证。**
+
+**请求体：**
+
+```json
+{
+  "locator": "{\"href\":\"chapter-3\",\"offset\":1234}"
+}
+```
+
+`locator` 为必填字段，存储完整的 Readium Locator JSON。
+
+**响应 `200`：**
+
+```json
 { "success": true }
 ```
+
+**错误：**
+- `400` — 缺少 `locator`
 
 ---
 
@@ -651,7 +783,7 @@ Token payload 结构：
 
 ### GET `/api/reader/:bookId/chapters/:chapterId`
 
-获取章节内容。**无需认证。**
+获取章节内容。**需要认证。** 仅书籍所有者可访问。
 
 **响应 `200`：**
 
@@ -669,7 +801,7 @@ Token payload 结构：
 
 ### GET `/api/reader/:bookId/search`
 
-书籍内部搜索。**无需认证。**
+书籍内部搜索。**需要认证。** 仅书籍所有者可访问。
 
 **查询参数：**
 
@@ -815,6 +947,208 @@ Token payload 结构：
 
 ---
 
+## Sync - 增量同步
+
+所有接口**需要认证**。
+
+### GET `/api/sync`
+
+增量同步接口。返回自 `cursor` 时间戳以来的所有变更，包括新增书籍、进度变化、TTS 位置变化和删除记录。
+
+**查询参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `cursor` | string | ISO 8601 时间戳。不传则返回全量数据（初始同步）。 |
+
+**响应 `200`：**
+
+```json
+{
+  "books": [
+    {
+      "id": 1,
+      "title": "string",
+      "author": "string",
+      "file_format": "epub",
+      "file_size": 123456,
+      "content_hash": "sha256:abc123...",
+      "cover_path": "string | null",
+      "created_at": "2026-08-01 10:00:00",
+      "updated_at": "2026-08-03 12:00:00"
+    }
+  ],
+  "progress_changes": [
+    {
+      "book_id": 1,
+      "progress": 0.75,
+      "locator": "{\"href\":\"chapter-2\"}",
+      "current_cfi": "epubcfi(/6/4...) | null",
+      "status": "reading",
+      "version": 3,
+      "last_chapter_id": "chapter-5 | null",
+      "updated_at": "2026-08-03 12:00:00"
+    }
+  ],
+  "tts_changes": [
+    {
+      "book_id": 1,
+      "locator": "{\"href\":\"chapter-3\",\"offset\":1234}",
+      "updated_at": "2026-08-03 12:00:00"
+    }
+  ],
+  "deleted_book_ids": [
+    {
+      "book_id": 2,
+      "delete_type": "shelf",
+      "deleted_at": "2026-08-03 11:00:00"
+    }
+  ],
+  "next_cursor": "2026-08-03 12:00:00"
+}
+```
+
+**字段说明：**
+
+- `books` — 新增或更新的书籍（`created_at > cursor` 或 `updated_at > cursor`）
+- `progress_changes` — 阅读进度变更（`user_books.updated_at > cursor`）
+- `tts_changes` — TTS 位置变更（`tts_progress.updated_at > cursor`）
+- `deleted_book_ids` — 删除墓碑，`delete_type` 区分删除类型：
+  - `shelf` — 仅移出书架（书籍文件仍在云端）
+  - `file` — 删除了云端文件
+- `next_cursor` — 本次返回中最大的时间戳，用作下次请求的 `cursor`
+
+---
+
+## Reading Sessions - 阅读统计
+
+所有接口**需要认证**。
+
+### POST `/api/reading-sessions/batch`
+
+批量写入阅读会话记录。**需要认证。** 使用客户端生成的 UUID 作为主键，支持幂等重试。
+
+**请求体：**
+
+```json
+{
+  "sessions": [
+    {
+      "id": "uuid-string",
+      "book_id": 1,
+      "started_at": "2026-08-03T10:00:00Z",
+      "ended_at": "2026-08-03T10:30:00Z",
+      "duration_seconds": 1800
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | 客户端生成的 UUID，用于幂等去重 |
+| `book_id` | number | 是 | 书籍 ID |
+| `started_at` | string | 是 | ISO 8601 开始时间 |
+| `ended_at` | string | 否 | ISO 8601 结束时间 |
+| `duration_seconds` | number | 否 | 持续时长（秒） |
+
+**响应 `200`：**
+
+```json
+{
+  "success": true,
+  "inserted": 2,
+  "skipped": 0
+}
+```
+
+`skipped` 为已存在（重复 ID）或字段缺失而跳过的记录数。
+
+---
+
+### GET `/api/reading-sessions`
+
+增量拉取阅读会话记录。**需要认证。**
+
+**查询参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `updated_after` | string | ISO 8601 时间戳。不传则返回全部记录。 |
+
+**响应 `200`：**
+
+```json
+{
+  "sessions": [
+    {
+      "id": "uuid-string",
+      "book_id": 1,
+      "started_at": "2026-08-03T10:00:00Z",
+      "ended_at": "2026-08-03T10:30:00Z",
+      "duration_seconds": 1800,
+      "created_at": "2026-08-03 10:30:00"
+    }
+  ]
+}
+```
+
+最多返回 500 条。
+
+---
+
+## User Settings - 用户设置
+
+所有接口**需要认证**。
+
+### GET `/api/user/reader-settings`
+
+获取当前用户的所有阅读设置。**需要认证。**
+
+**响应 `200`：**
+
+```json
+{
+  "settings": {
+    "theme": { "value": "dark", "updated_at": "2026-08-03 12:00:00" },
+    "fontSize": { "value": "18", "updated_at": "2026-08-03 12:00:00" },
+    "lineHeight": { "value": "1.6", "updated_at": "2026-08-03 12:00:00" },
+    "ttsVoice": { "value": "zh-CN", "updated_at": "2026-08-03 12:00:00" },
+    "ttsRate": { "value": "1.2", "updated_at": "2026-08-03 12:00:00" }
+  }
+}
+```
+
+---
+
+### PUT `/api/user/reader-settings`
+
+批量更新阅读设置（upsert）。**需要认证。** 传入的键值对会合并到现有设置中，已有的键会被覆盖。
+
+**请求体：**
+
+```json
+{
+  "settings": {
+    "theme": "dark",
+    "fontSize": "18",
+    "lineHeight": "1.6",
+    "ttsVoice": "zh-CN",
+    "ttsRate": "1.2"
+  }
+}
+```
+
+键名和值均为字符串，客户端自定义。
+
+**响应 `200`：**
+
+```json
+{ "success": true }
+```
+
+---
+
 ## AI 封面生成
 
 ### POST `/api/generate-cover`
@@ -885,12 +1219,16 @@ Token payload 结构：
 | 表名 | 说明 |
 |------|------|
 | `users` | 用户 |
-| `books` | 书籍 |
+| `books` | 书籍（含 `content_hash` 用于去重） |
 | `chapters` | 章节 |
 | `categories` | 分类（树形，支持 `parent_id`） |
 | `tags` | 标签 |
 | `book_categories` | 书籍-分类关联（多对多） |
 | `book_tags` | 书籍-标签关联（多对多） |
-| `user_books` | 用户-书籍关联（书架 + 阅读进度） |
+| `user_books` | 用户-书籍关联（书架 + 阅读进度 + locator + 版本号） |
 | `bookmarks` | 书签 |
 | `highlights` | 高亮 |
+| `tts_progress` | TTS 朗读位置（每本书独立） |
+| `reading_sessions` | 阅读统计会话（客户端 UUID 主键） |
+| `deleted_books` | 删除墓碑（同步用，区分 shelf/file 删除类型） |
+| `user_settings` | 用户阅读设置（键值对存储） |
