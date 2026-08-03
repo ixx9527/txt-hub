@@ -168,18 +168,17 @@ export async function parseEpub(filePath: string, format: string, originalName?:
 async function parseTxt(filePath: string, originalName?: string): Promise<ParsedEpubMeta> {
   const buffer = fs.readFileSync(filePath);
 
-  // Detect encoding (simple UTF-8 / GBK detection)
   let text: string;
   try {
-    text = buffer.toString('utf-8');
-    // Check for replacement chars indicating wrong encoding
-    if (text.includes('\uFFFD')) {
-      const Encoding = (await import('encoding-japanese')).default;
-      const unicodeArray = Encoding.convert(Array.from(buffer), { to: 'UNICODE', from: 'SJIS' });
-      text = Encoding.codeToString(unicodeArray);
-    }
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    text = decoder.decode(buffer);
   } catch {
-    text = buffer.toString('utf-8');
+    try {
+      const gbkDecoder = new TextDecoder('gbk');
+      text = gbkDecoder.decode(buffer);
+    } catch {
+      text = buffer.toString('utf-8');
+    }
   }
 
   // Clean text
