@@ -5,6 +5,7 @@ const CN_NUM = '[零〇一二三四五六七八九十百千万壹贰叁肆伍陆
 
 const VOLUME_PATTERNS = [
   new RegExp(`^\\s*(?:卷\\s*(?:${CN_NUM}|\\d+)|第\\s*(?:${CN_NUM}|\\d+)\\s*卷)(.*)$`),
+  new RegExp(`^\\s*第\\s*(?:${CN_NUM}|\\d+)\\s*部(.*)$`),
 ];
 
 const CHAPTER_PATTERNS = [
