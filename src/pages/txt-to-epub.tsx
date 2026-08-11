@@ -5,6 +5,8 @@ import { MetadataForm } from '../components/metadata-form';
 import { CoverEditor } from '../components/cover-editor';
 import { ChapterTree } from '../components/chapter-tree';
 import { ChapterPreview } from '../components/chapter-preview';
+import { TextEditor } from '../components/text-editor';
+import { SearchReplace } from '../components/search-replace';
 import { ExportButton } from '../components/export-button';
 import { UploadIcon } from '../components/icons';
 import { parseInWorker, buildEpubInWorker } from '../core/workers';
@@ -28,6 +30,8 @@ export function TxtToEpubPage() {
   const [processing, setProcessing] = useState(false);
   const [parseStep, setParseStep] = useState<ParseProgressStep | null>(null);
   const [encoding, setEncoding] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleFileLoaded = useCallback(async (buffer: ArrayBuffer, fileName: string) => {
     setProcessing(true);
@@ -58,6 +62,31 @@ export function TxtToEpubPage() {
     setMeta({ title: '', author: '佚名', language: 'zh-CN' });
     setCoverImage(null);
     setEncoding(null);
+    setEditing(false);
+    setShowSearch(false);
+  }, []);
+
+  const handleChapterContentChange = useCallback((chapterId: string, newContent: string) => {
+    setParseResult((prev) => {
+      if (!prev) return prev;
+
+      const updateChapter = (ch: Chapter): Chapter =>
+        ch.id === chapterId ? { ...ch, content: newContent } : ch;
+
+      const newChapters = prev.chapters.map(updateChapter);
+      const newVolumes = prev.hasVolumeStructure
+        ? prev.volumes.map((v) => ({
+            ...v,
+            chapters: v.chapters.map(updateChapter),
+          }))
+        : prev.volumes;
+
+      return { ...prev, chapters: newChapters, volumes: newVolumes };
+    });
+
+    setSelectedChapter((prev) =>
+      prev?.id === chapterId ? { ...prev, content: newContent } : prev,
+    );
   }, []);
 
   const handleExportAndUpload = async () => {
@@ -159,8 +188,60 @@ export function TxtToEpubPage() {
                 onSelect={setSelectedChapter}
               />
             </div>
-            <div className="flex-1 overflow-y-auto bg-white">
-              <ChapterPreview chapter={selectedChapter} />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Toolbar */}
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white shrink-0">
+                <h2 className="text-sm font-semibold text-gray-700 truncate mr-auto">
+                  {selectedChapter?.title || '选择章节'}
+                </h2>
+                <button
+                  onClick={() => { setEditing(!editing); setShowSearch(false); }}
+                  className={`px-3 py-1 text-xs rounded transition-colors ${
+                    editing
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {editing ? '编辑中' : '编辑'}
+                </button>
+                <button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className={`px-3 py-1 text-xs rounded transition-colors ${
+                    showSearch
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  搜索/替换
+                </button>
+              </div>
+
+              {/* Search/Replace bar */}
+              {showSearch && (
+                <SearchReplace
+                  parseResult={parseResult}
+                  onUpdateChapter={handleChapterContentChange}
+                  onClose={() => setShowSearch(false)}
+                />
+              )}
+
+              {/* Content area */}
+              <div className="flex-1 overflow-hidden">
+                {selectedChapter ? (
+                  editing ? (
+                    <TextEditor
+                      value={selectedChapter.content}
+                      onChange={(val) => handleChapterContentChange(selectedChapter.id, val)}
+                    />
+                  ) : (
+                    <ChapterPreview chapter={selectedChapter} />
+                  )
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    选择一个章节以{editing ? '编辑' : '预览'}内容
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : (
