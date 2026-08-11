@@ -13,6 +13,7 @@ import readerRoutes from './routes/reader.js';
 import syncRoutes from './routes/sync.js';
 import readingSessionRoutes from './routes/reading-sessions.js';
 import settingsRoutes from './routes/settings.js';
+import convertRoutes from './routes/convert.js';
 
 const app = express();
 const PORT = 3847;
@@ -70,6 +71,7 @@ app.use('/api/reader', readerRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/reading-sessions', readingSessionRoutes);
 app.use('/api/user', settingsRoutes);
+app.use('/api/convert', convertRoutes);
 
 // AI cover generation (existing)
 app.post('/api/generate-cover', aiLimiter, aiHourLimiter, async (req, res) => {

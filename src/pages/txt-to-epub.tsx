@@ -23,7 +23,7 @@ export function TxtToEpubPage() {
     author: '佚名',
     language: 'zh-CN',
   });
-  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+  const [coverImage, setCoverImage] = useState<Blob | null>(null);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [parseStep, setParseStep] = useState<ParseProgressStep | null>(null);
@@ -56,12 +56,12 @@ export function TxtToEpubPage() {
     setParseResult(null);
     setSelectedChapter(null);
     setMeta({ title: '', author: '佚名', language: 'zh-CN' });
-    setCoverBlob(null);
+    setCoverImage(null);
     setEncoding(null);
   }, []);
 
   const handleExportAndUpload = async () => {
-    if (!parseResult || !coverBlob || !token) return;
+    if (!parseResult || !coverImage || !token) return;
     setUploading(true);
     try {
       const blob = await buildEpubInWorker({
@@ -69,7 +69,7 @@ export function TxtToEpubPage() {
         volumes: parseResult.volumes,
         chapters: parseResult.chapters,
         hasVolumeStructure: parseResult.hasVolumeStructure,
-        coverBlob,
+        coverImage,
       });
 
       const file = new File([blob], `${meta.title}.epub`, { type: 'application/epub+zip' });
@@ -111,14 +111,14 @@ export function TxtToEpubPage() {
               <CoverEditor
                 title={meta.title}
                 author={meta.author}
-                onCoverChange={setCoverBlob}
+                onCoverChange={setCoverImage}
               />
-              <ExportButton meta={meta} result={parseResult} coverBlob={coverBlob} />
+              <ExportButton meta={meta} result={parseResult} coverImage={coverImage} />
 
               {token && (
                 <button
                   onClick={handleExportAndUpload}
-                  disabled={uploading || !coverBlob}
+                  disabled={uploading || !coverImage}
                   className="w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
                   <UploadIcon size={16} />

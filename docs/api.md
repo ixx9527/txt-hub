@@ -18,6 +18,7 @@
 - [Sync - 增量同步](#sync---增量同步)
 - [Reading Sessions - 阅读统计](#reading-sessions---阅读统计)
 - [User Settings - 用户设置](#user-settings---用户设置)
+- [Convert - TXT 转 EPUB](#convert---txt-转-epub)
 - [AI 封面生成](#ai-封面生成)
 - [Health](#health)
 
@@ -390,7 +391,7 @@ Token payload 结构：
 |------|------|--------|------|
 | `format` | string | `epub` | 目标格式：`epub` / `txt` |
 
-支持格式转换：EPUB 文件可下载为 TXT。
+支持格式转换：EPUB 文件可下载为 TXT，TXT 书籍可下载为服务端动态生成的 EPUB（含自动章节解析和封面生成）。
 
 **响应：** 文件下载流
 
@@ -1146,6 +1147,67 @@ Token payload 结构：
 ```json
 { "success": true }
 ```
+
+---
+
+## Convert - TXT 转 EPUB
+
+所有接口**需要认证**。
+
+### POST `/api/convert/txt-to-epub`
+
+将 TXT 文件转换为 EPUB 并返回文件流。不入库，纯格式转换。
+
+**请求：** `multipart/form-data`
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `file` | File | 是 | TXT 文件，最大 100MB |
+| `title` | string | 否 | 书名（默认取文件名） |
+| `author` | string | 否 | 作者（默认"佚名"） |
+| `language` | string | 否 | 语言代码（默认 `zh-CN`） |
+| `coverMode` | string | 否 | 封面模式：`random`（默认）/ `ai` / `none` |
+| `coverTheme` | string | 否 | 指定主题 ID（见下方主题列表） |
+| `aiStyle` | string | 否 | AI 封面风格描述（仅 `coverMode=ai` 时有效） |
+
+**可用主题 ID：** `midnight`、`ember`、`forest`、`wine`、`slate`、`dusk`、`ocean`、`charcoal`、`autumn`、`jade`
+
+**响应 `200`：** EPUB 文件下载流（`application/epub+zip`）
+
+**错误：**
+- `400` — 未选择文件 / 非 TXT 文件
+- `500` — 转换失败
+
+---
+
+### POST `/api/convert/txt-to-epub-and-store`
+
+将 TXT 文件转换为 EPUB 并入库保存。自动解析章节、生成封面、计算内容哈希。
+
+**请求：** `multipart/form-data`
+
+参数与 `/api/convert/txt-to-epub` 相同。
+
+**响应 `201`：**
+
+```json
+{
+  "id": 1,
+  "title": "书名",
+  "format": "epub"
+}
+```
+
+入库操作包括：
+- 解析 TXT 章节结构（复用客户端章节解析器）
+- 生成 EPUB 文件并保存
+- 生成封面图片（随机主题或 AI）
+- 计算内容 SHA256 哈希（用于去重）
+- 写入书籍记录和章节索引
+
+**错误：**
+- `400` — 未选择文件 / 非 TXT 文件
+- `500` — 转换或入库失败
 
 ---
 

@@ -36,7 +36,7 @@ export function buildEpubInWorker(input: {
   volumes: import('../types').Volume[];
   chapters: import('../types').Chapter[];
   hasVolumeStructure: boolean;
-  coverBlob: Blob;
+  coverImage: Blob;
 }): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./epub-worker.ts', import.meta.url), { type: 'module' });

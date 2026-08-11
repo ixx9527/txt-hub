@@ -6,7 +6,7 @@ interface EpubRequest {
   volumes: Volume[];
   chapters: Chapter[];
   hasVolumeStructure: boolean;
-  coverBlob: Blob;
+  coverImage: Blob;
 }
 
 self.onmessage = async (e: MessageEvent<EpubRequest>) => {

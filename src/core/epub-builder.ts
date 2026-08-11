@@ -1,12 +1,12 @@
 import JSZip from 'jszip';
 import type { BookMeta, Chapter, Volume } from '../types';
 
-interface EpubInput {
+export interface EpubInput {
   meta: BookMeta;
   volumes: Volume[];
   chapters: Chapter[];
   hasVolumeStructure: boolean;
-  coverBlob: Blob;
+  coverImage: Blob | Buffer | Uint8Array;
 }
 
 function escapeXml(str: string): string {
@@ -245,7 +245,10 @@ ${navPoints}
 </ncx>`;
 }
 
-export async function buildEpub(input: EpubInput): Promise<Blob> {
+export async function buildEpub<T extends string = 'blob'>(
+  input: EpubInput,
+  outputType?: T,
+): Promise<T extends 'blob' ? Blob : Buffer> {
   const zip = new JSZip();
   const allChapters = getAllChapters(input);
 
@@ -264,17 +267,18 @@ export async function buildEpub(input: EpubInput): Promise<Blob> {
     buildTocNcx(input.meta, input.volumes, input.chapters, input.hasVolumeStructure),
   );
   oebps.file('cover.xhtml', buildCoverXhtml(input.meta.title));
-  oebps.file('cover.jpg', input.coverBlob);
+  oebps.file('cover.jpg', input.coverImage as Uint8Array);
   oebps.file('style.css', buildStyleCss());
 
   for (const chapter of allChapters) {
     oebps.file(`${chapter.id}.xhtml`, buildChapterXhtml(chapter));
   }
 
+  const type = (outputType || 'blob') as 'blob' | 'nodebuffer';
   return zip.generateAsync({
-    type: 'blob',
+    type,
     mimeType: 'application/epub+zip',
     compression: 'DEFLATE',
     compressionOptions: { level: 9 },
-  });
+  }) as Promise<T extends 'blob' ? Blob : Buffer>;
 }

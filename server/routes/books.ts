@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { parseEpub } from '../services/epub-parser.js';
 import { epubToTxt } from '../services/txt-converter.js';
+import { convertTxtToEpub } from '../services/txt-to-epub.js';
 import { detectChapterLevel } from '../db.js';
 
 function computeFileHash(filePath: string): string {
@@ -356,7 +357,7 @@ router.delete('/:id', authMiddleware, (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
+router.get('/:id/download', authMiddleware, async (req: Request, res: Response) => {
   try {
     const db = getDbSync();
     const id = parseInt(req.params.id);
@@ -380,9 +381,11 @@ router.get('/:id/download', authMiddleware, (req: Request, res: Response) => {
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}.txt"`);
       res.send(txt);
     } else if (format === 'epub' && fileFormat === 'txt') {
-      // For TXT books, serve the original file (EPUB generation happens at upload time in future)
+      const result = await convertTxtToEpub(filePath as string, title as string);
       const safeName = (title as string).replace(/[^\w\u4e00-\u9fff]/g, '_');
-      res.download(filePath as string, `${safeName}.txt`);
+      res.setHeader('Content-Type', 'application/epub+zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}.epub"`);
+      res.send(Buffer.from(result.epubBuffer));
     } else {
       res.status(400).json({ error: '不支持的转换格式' });
     }

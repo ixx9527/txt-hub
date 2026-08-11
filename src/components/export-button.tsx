@@ -6,16 +6,16 @@ import type { BookMeta, ParseResult } from '../types';
 interface Props {
   meta: BookMeta;
   result: ParseResult | null;
-  coverBlob: Blob | null;
+  coverImage: Blob | null;
 }
 
-export function ExportButton({ meta, result, coverBlob }: Props) {
+export function ExportButton({ meta, result, coverImage }: Props) {
   const [exporting, setExporting] = useState(false);
 
-  const disabled = !result || !meta.title || !meta.author || !coverBlob;
+  const disabled = !result || !meta.title || !meta.author || !coverImage;
 
   const handleExport = async () => {
-    if (!result || !coverBlob) return;
+    if (!result || !coverImage) return;
     setExporting(true);
     try {
       const blob = await buildEpubInWorker({
@@ -23,7 +23,7 @@ export function ExportButton({ meta, result, coverBlob }: Props) {
         volumes: result.volumes,
         chapters: result.chapters,
         hasVolumeStructure: result.hasVolumeStructure,
-        coverBlob,
+        coverImage,
       });
       saveAs(blob, `${meta.title}.epub`);
     } finally {
