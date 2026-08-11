@@ -61,6 +61,25 @@ function parseNumber(s: string): number {
   return chineseToNumber(s);
 }
 
+function normalizeHeading(title: string): string {
+  let t = title.trim();
+  // Normalize "第 X 章/节/回/卷" — remove spaces within the prefix
+  t = t.replace(
+    /^第\s*([零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟\d]+)\s*([章节回卷])/,
+    '第$1$2',
+  );
+  // Normalize "卷 X" — remove space between 卷 and its number
+  t = t.replace(
+    /^卷\s*([零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟\d]+)/,
+    '卷$1',
+  );
+  // Normalize "Chapter N" prefix
+  t = t.replace(/^(Chapter)\s+(\d+)\s*([.:：])?\s*/i, (_, ch, n, sep) =>
+    sep ? `${ch} ${n}${sep} ` : `${ch} ${n} `,
+  );
+  return t;
+}
+
 function matchHeading(line: string): RawHeading | null {
   for (const pat of VOLUME_PATTERNS) {
     const m = line.match(pat);
@@ -68,7 +87,7 @@ function matchHeading(line: string): RawHeading | null {
       const numMatch = line.match(new RegExp(`(${CN_NUM}|\\d+)`));
       return {
         lineIndex: 0,
-        title: line.trim(),
+        title: normalizeHeading(line),
         type: 'volume',
         number: numMatch ? parseNumber(numMatch[1]) : 0,
       };
@@ -79,11 +98,9 @@ function matchHeading(line: string): RawHeading | null {
     const m = line.match(pat);
     if (m) {
       const num = parseNumber(m[1]);
-      const suffix = m[2]?.trim() || '';
-      const title = suffix ? `${line.trim()}` : line.trim();
       return {
         lineIndex: 0,
-        title,
+        title: normalizeHeading(line),
         type: 'chapter',
         number: num,
       };

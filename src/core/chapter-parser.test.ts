@@ -155,6 +155,51 @@ Content of chapter 2`;
     expect(result.chapters[1].title).toBe('Chapter 2: The Journey');
   });
 
+  it('normalizes irregular spaces in chapter headings', () => {
+    const text = `第7 章 入职
+入职的正文
+
+第 8章 新任务
+新任务的正文
+
+第 9 章 决战
+决战的正文`;
+
+    const result = parseChapters(text);
+    expect(result.chapters).toHaveLength(3);
+    expect(result.chapters[0].title).toBe('第7章 入职');
+    expect(result.chapters[1].title).toBe('第8章 新任务');
+    expect(result.chapters[2].title).toBe('第9章 决战');
+  });
+
+  it('normalizes irregular spaces in volume headings', () => {
+    const text = `第 1 卷 初入江湖
+第一章 楔子
+楔子的正文
+
+第 2卷 风云再起
+第二章 新世界
+新世界的正文`;
+
+    const result = parseChapters(text);
+    expect(result.hasVolumeStructure).toBe(true);
+    expect(result.volumes[0].title).toBe('第1卷 初入江湖');
+    expect(result.volumes[1].title).toBe('第2卷 风云再起');
+  });
+
+  it('normalizes irregular spaces in English chapter headings', () => {
+    const text = `Chapter  7 : The Battle
+Content here
+
+Chapter 8:The Return
+More content`;
+
+    const result = parseChapters(text);
+    expect(result.chapters).toHaveLength(2);
+    expect(result.chapters[0].title).toBe('Chapter 7: The Battle');
+    expect(result.chapters[1].title).toBe('Chapter 8: The Return');
+  });
+
   it('handles volume + chapter structure', () => {
     const text = `第一卷 初入江湖
 开篇引言
