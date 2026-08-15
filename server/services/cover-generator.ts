@@ -180,7 +180,7 @@ export async function generateAICover(
   const safeTitle = title.replace(/[{}<>\\]/g, '').trim();
   const safeAuthor = author.replace(/[{}<>\\]/g, '').trim();
   const styleHint = style ? `，${style.replace(/[{}<>\\]/g, '').trim()}` : '';
-  const prompt = `为一本名为《${safeTitle}》的书设计封面，作者：${safeAuthor}${styleHint}。要求：专业书籍封面设计，竖版构图，画面精美有艺术感，书名文字清晰醒目地展示在封面上，整体风格协调统一，高质量印刷品质。`;
+  const prompt = `设计一张书籍封面平面图，书名《${safeTitle}》，作者：${safeAuthor}${styleHint}。要求：纯平面封面设计，画面铺满整个图片区域，不要展示书本实物或样机效果，不要留白边，竖版构图，画面精美有艺术感，书名文字清晰醒目，整体风格协调统一，高质量印刷品质。`;
 
   const body = {
     model: 'qwen-image-2.0-pro',
@@ -192,7 +192,7 @@ export async function generateAICover(
       n: 1,
       prompt_extend: true,
       watermark: false,
-      negative_prompt: '低分辨率，低画质，模糊，变形，扭曲，文字错误，文字模糊，构图混乱，过度饱和，蜡像感',
+      negative_prompt: '低分辨率，低画质，模糊，变形，扭曲，文字错误，文字模糊，构图混乱，过度饱和，蜡像感，书本实物，立体书，样机，mockup，白边，留白',
     },
   };
 
